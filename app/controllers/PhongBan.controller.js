@@ -26,6 +26,7 @@ exports.findAll = async (req, res, next) => {
 
     try {
         const departmentService = new DepartmentService(MySQL.connection);
+        //Nếu có tham số tìm kiếm thì tìm kiếm theo tham số đó
         const {tenPhongBan} = req.query;
         if (tenPhongBan) {
             documents = await departmentService.findByName(tenPhongBan);

@@ -5,7 +5,7 @@ const AuthService = require("../services/TaiKhoan.service");
 //Tạo tài khoản
 exports.create = async (req, res, next) => {
     if (!req.body.email) {
-        return next(new ApiError(400, "Eamil can not be empty"));
+        return next(new ApiError(400, "Email can not be empty"));
     }
 
     try {
@@ -26,9 +26,10 @@ exports.findAll = async (req, res, next) => {
 
     try {
         const authService = new AuthService(MySQL.connection);
-        const {name} = req.query;
-        if (name) {
-            documents = await authService.findByName(name);
+        //Nếu có tham số tìm kiếm thì tìm kiếm theo tham số đó
+        const {tenNV} = req.query;
+        if (tenNV) {
+            documents = await authService.findBytenNV(tenNV);
         } else {
             documents = await authService.find({});
         }
