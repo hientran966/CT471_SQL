@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const ApiError = require("./app/api-error");
 const authRouter = require("./app/routes/TaiKhoan.route");
+const departmentRouter = require("./app/routes/PhongBan.route");
 
 const app = express();
 
@@ -13,6 +14,7 @@ app.get("/", (req, res) => {
 });
 // Import routes
 app.use("/api/auth", authRouter);
+app.use("/api/phongban", departmentRouter);
 
 //handle 404
 app.use((req, res, next) => {
