@@ -86,7 +86,7 @@ class AssignmentService {
 
     async deleteAll() {
         await this.mysql.execute("DELETE FROM PhanCong");
-        return "All assignments deleted";
+        return true;
     }
 }
 

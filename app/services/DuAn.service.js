@@ -93,7 +93,7 @@ class ProjectService {
 
     async deleteAll() {
         await this.mysql.execute("DELETE FROM DuAn");
-        return "All projects deleted";
+        return true;
     }
 }
 

@@ -124,7 +124,7 @@ class AuthService {
 
     async deleteAll() {
         const [result] = await this.mysql.execute("DELETE FROM TaiKhoan");
-        return result.affectedRows;
+        return true;
     }
 
     async comparePassword(inputPassword, storedPassword) {

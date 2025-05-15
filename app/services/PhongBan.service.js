@@ -63,7 +63,7 @@ class DepartmentService {
 
     async deleteAll() {
         await this.mysql.execute("DELETE FROM PhongBan");
-        return "All departments deleted";
+        return true;
     }
 }
 

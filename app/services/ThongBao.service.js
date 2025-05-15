@@ -83,7 +83,7 @@ class NoficationService {
 
     async deleteAll() {
         await this.mysql.execute("DELETE FROM ThongBao");
-        return { message: "All notifications were deleted successfully" };
+        return true;
     }
 }
 

@@ -17,16 +17,20 @@ class FileService {
         };
     }
 
-    // Lưu file từ payload chứa base64
+    // Lưu file từ payload chứa base64 với tên duy nhất
     async saveFileFromPayload(payload) {
         const { tenFile, fileDataBase64 } = payload;
         const uploadsDir = path.join(__dirname, '../../uploads');
         if (!fs.existsSync(uploadsDir)) {
             fs.mkdirSync(uploadsDir, { recursive: true });
         }
-        const filePath = path.join(uploadsDir, tenFile);
+        // Tạo tên file duy nhất
+        const ext = path.extname(tenFile);
+        const baseName = path.basename(tenFile, ext);
+        const uniqueName = `${baseName}_${Date.now()}${ext}`;
+        const filePath = path.join(uploadsDir, uniqueName);
         fs.writeFileSync(filePath, Buffer.from(fileDataBase64, 'base64'));
-        return path.join('uploads', tenFile);
+        return path.join('uploads', uniqueName);
     }
 
     async create(payload) {

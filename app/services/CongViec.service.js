@@ -97,7 +97,7 @@ class TaskService {
 
     async deleteAll() {
         await this.mysql.execute("DELETE FROM CongViec");
-        return "All tasks deleted";
+        return true;
     }
 }
 
