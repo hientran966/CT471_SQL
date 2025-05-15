@@ -88,10 +88,12 @@ class ProjectService {
 
     async delete(id) {
         await this.mysql.execute("DELETE FROM DuAn WHERE id = ?", [id]);
+        return id;
     }
 
     async deleteAll() {
         await this.mysql.execute("DELETE FROM DuAn");
+        return "All projects deleted";
     }
 }
 

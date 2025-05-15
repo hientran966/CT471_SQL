@@ -3,19 +3,33 @@ class NoficationService {
         this.mysql = mysql;
     }
 
+    extractNoficationData(payload) {
+        return {
+            id: payload.id,
+            tieuDe: payload.tieuDe ?? null,
+            noiDung: payload.noiDung,
+            nguoiDang: payload.nguoiDang,
+            ngayDang: payload.ngayDang,
+            duAn: payload.duAn,
+            phanHoi: payload.phanHoi ?? null,
+        };
+    }
+
     async create(payload) {
+        const nofication = this.extractNoficationData(payload);
         const [result] = await this.mysql.execute(
-            "INSERT INTO ThongBao (id, tieuDe, noiDung, nguoiDang, ngayDang, duAn) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO ThongBao (id, tieuDe, noiDung, nguoiDang, ngayDang, duAn, phanHoi) VALUES (?, ?, ?, ?, ?, ?, ?)",
             [
-                payload.id,
-                payload.tieuDe,
-                payload.noiDung,
-                payload.nguoiDang,
-                payload.ngayDang,
-                payload.duAn,
+                nofication.id,
+                nofication.tieuDe,
+                nofication.noiDung,
+                nofication.nguoiDang,
+                nofication.ngayDang,
+                nofication.duAn,
+                nofication.phanHoi,
             ]
         );
-        return { ...payload };
+        return { ...nofication };
     }
 
     async find(filter = {}) {
@@ -48,28 +62,28 @@ class NoficationService {
     }
 
     async update(id, payload) {
-        const update = this.extractNoficationData(payload);
+        const nofication = this.extractNoficationData(payload);
         let sql = "UPDATE ThongBao SET ";
         const fields = [];
         const params = [];
-        for (const key in update) {
+        for (const key in nofication) {
             fields.push(`${key} = ?`);
-            params.push(update[key]);
+            params.push(nofication[key]);
         }
         sql += fields.join(", ") + " WHERE id = ?";
         params.push(id);
         await this.mysql.execute(sql, params);
-        return { ...update };
-    }
-
-    async delete(id) {
-        await this.mysql.execute("DELETE FROM ThongBao WHERE id = ?", [id]);
-        return { id };
+        return { ...nofication };
     }
     
+    async delete(id) {
+        await this.mysql.execute("DELETE FROM ThongBao WHERE id = ?", [id]);
+        return id;
+    }
+
     async deleteAll() {
         await this.mysql.execute("DELETE FROM ThongBao");
-        return { message: "All notifications deleted" };
+        return { message: "All notifications were deleted successfully" };
     }
 }
 

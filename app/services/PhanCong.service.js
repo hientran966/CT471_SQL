@@ -81,11 +81,12 @@ class AssignmentService {
         const assignment = await this.findById(id);
         if (!assignment) return null;
         await this.mysql.execute("DELETE FROM PhanCong WHERE id = ?", [id]);
-        return assignment;
+        return id;
     }
 
     async deleteAll() {
         await this.mysql.execute("DELETE FROM PhanCong");
+        return "All assignments deleted";
     }
 }
 

@@ -87,14 +87,17 @@ class TaskService {
         sql += fields.join(", ") + " WHERE id = ?";
         params.push(id);
         await this.mysql.execute(sql, params);
+        return { ...task };
     }
 
     async delete(id) {
         await this.mysql.execute("DELETE FROM CongViec WHERE id = ?", [id]);
+        return id;
     }
 
     async deleteAll() {
         await this.mysql.execute("DELETE FROM CongViec");
+        return "All tasks deleted";
     }
 }
 

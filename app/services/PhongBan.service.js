@@ -53,14 +53,17 @@ class DepartmentService {
         sql += fields.join(", ") + " WHERE id = ?";
         params.push(id);
         await this.mysql.execute(sql, params);
+        return { id: department.id, tenPhongBan: department.tenPhongBan };
     }
 
     async delete(id) {
         await this.mysql.execute("DELETE FROM PhongBan WHERE id = ?", [id]);
+        return id;
     }
 
     async deleteAll() {
         await this.mysql.execute("DELETE FROM PhongBan");
+        return "All departments deleted";
     }
 }
 
