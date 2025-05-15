@@ -9,10 +9,10 @@ class FileService {
     async extractFileData(payload) {
         return {
             id: payload.id,
-            tenFile: payload.tenFile,
-            nguoiTao: payload.nguoiTao,
-            duAn: payload.duAn,
-            ngayUpload: payload.ngayUpload,
+            tenFile: payload.tenFile ?? null,
+            nguoiTao: payload.nguoiTao ?? null,
+            duAn: payload.duAn ?? null,
+            ngayUpload: payload.ngayUpload ?? new Date(),
             soPB: payload.soPB ?? 0,
         };
     }
@@ -35,7 +35,7 @@ class FileService {
         if (payload.fileDataBase64 && payload.tenFile) {
             duongDan = await this.saveFileFromPayload(payload);
         }
-        const file = this.extractFileData(payload);
+        const file = await this.extractFileData(payload);
         file.duongDan = duongDan; // Gán đường dẫn file
         const [result] = await this.mysql.execute(
             "INSERT INTO File (id, tenFile, nguoiTao, duAn, ngayUpload, duongDan, soPB) VALUES (?, ?, ?, ?, ?, ?, ?)",
