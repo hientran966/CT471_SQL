@@ -1,53 +1,57 @@
-class ProjectService {
+class TaskService {
     constructor(mysql) {
         this.mysql = mysql;
     }
 
-    extractProjectData(payload) {
+    extractTaskData(payload) {
         return {
             id: payload.id,
-            tenDA: payload.tenDA,
+            tenCV: payload.tenCV,
+            moTa: payload.moTa,
             ngayBD: payload.ngayBD,
             ngayKT: payload.ngayKT,
             soNgay: payload.soNgay,
+            tienDo: payload.tienDo ?? 0,
             trangThai: payload.trangThai ?? "Chưa bắt đầu",
-            phongBan: payload.phongBan,
+            duAn: payload.duAn,
         };
     }
 
     async create(payload) {
-        const project = this.extractProjectData(payload);
+        const task = this.extractTaskData(payload);
         const [result] = await this.mysql.execute(
-            "INSERT INTO DuAn (id, tenDA, ngayBD, ngayKT, soNgay, trangThai, phongBan) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO CongViec (id, tenCV, moTa, ngayBD, ngayKT, soNgay, tienDo, trangThai, duAn) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
-                project.id,
-                project.tenDA,
-                project.ngayBD,
-                project.ngayKT,
-                project.soNgay,
-                project.trangThai,
-                project.phongBan,
+                task.id,
+                task.tenCV,
+                task.moTa,
+                task.ngayBD,
+                task.ngayKT,
+                task.soNgay,
+                task.tienDo,
+                task.trangThai,
+                task.duAn,
             ]
         );
-        return { ...project };
+        return { id: result.insertId, ...task };
     }
 
     async find(filter = {}) {
-        let sql = "SELECT * FROM DuAn";
+        let sql = "SELECT * FROM CongViec";
         let params = [];
-        if (filter.tenDA) {
-            sql += " WHERE tenDA LIKE ?";
-            params.push(`%${filter.tenDA}%`);
+        if (filter.tenCV) {
+            sql += " WHERE tenCV LIKE ?";
+            params.push(`%${filter.tenCV}%`);
         }
         if (filter.trangThai) {
             sql += params.length ? " AND" : " WHERE";
             sql += " trangThai = ?";
             params.push(filter.trangThai);
         }
-        if (filter.phongBan) {
+        if (filter.duAn) {
             sql += params.length ? " AND" : " WHERE";
-            sql += " phongBan = ?";
-            params.push(filter.phongBan);
+            sql += " duAn = ?";
+            params.push(filter.duAn);
         }
         if (filter.ngayBD) {
             sql += params.length ? " AND" : " WHERE";
@@ -65,34 +69,33 @@ class ProjectService {
 
     async findById(id) {
         const [rows] = await this.mysql.execute(
-            "SELECT * FROM DuAn WHERE id = ?",
+            "SELECT * FROM CongViec WHERE id = ?",
             [id]
         );
         return rows[0] || null;
     }
 
     async update(id, payload) {
-        const project = this.extractProjectData(payload);
-        let sql = "UPDATE DuAn SET ";
+        const task = this.extractTaskData(payload);
+        let sql = "UPDATE CongViec SET ";
         const fields = [];
         const params = [];
-        for (const key in project) {
+        for (const key in task) {
             fields.push(`${key} = ?`);
-            params.push(project[key]);
+            params.push(task[key]);
         }
         sql += fields.join(", ") + " WHERE id = ?";
         params.push(id);
         await this.mysql.execute(sql, params);
-        return this.findById(id);
     }
 
     async delete(id) {
-        await this.mysql.execute("DELETE FROM DuAn WHERE id = ?", [id]);
+        await this.mysql.execute("DELETE FROM CongViec WHERE id = ?", [id]);
     }
 
     async deleteAll() {
-        await this.mysql.execute("DELETE FROM DuAn");
+        await this.mysql.execute("DELETE FROM CongViec");
     }
 }
 
-module.exports = ProjectService;
+module.exports = TaskService;

@@ -13,10 +13,13 @@ class DepartmentService {
     async create(payload) {
         const department = this.extractDepartmentData(payload);
         const [result] = await this.mysql.execute(
-            "INSERT INTO PhongBan (tenPhongBan) VALUES (?)",
-            [department.tenPhongBan]
+            "INSERT INTO PhongBan (id, tenPhongBan) VALUES (?, ?)",
+            [
+                department.id,
+                department.tenPhongBan
+            ]
         );
-        return { id: result.insertId, tenPhongBan: department.tenPhongBan };
+        return { id: department.id, tenPhongBan: department.tenPhongBan };
     }
 
     async find(filter = {}) {
@@ -60,3 +63,5 @@ class DepartmentService {
         await this.mysql.execute("DELETE FROM PhongBan");
     }
 }
+
+module.exports = DepartmentService;
