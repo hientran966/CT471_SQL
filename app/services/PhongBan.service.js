@@ -3,7 +3,7 @@ class DepartmentService {
         this.mysql = mysql;
     }
 
-    extractDepartmentData(payload) {
+    async extractDepartmentData(payload) {
         return {
             id: payload.id,
             tenPhongBan: payload.tenPhongBan,

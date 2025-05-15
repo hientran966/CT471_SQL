@@ -5,7 +5,7 @@ class AuthService {
         this.mysql = mysql;
     }
 
-    extractAuthData(payload) {
+    async extractAuthData(payload) {
         const auth = {
             id: payload.id,
             email: payload.email,

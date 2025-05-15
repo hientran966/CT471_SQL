@@ -3,7 +3,7 @@ class TaskService {
         this.mysql = mysql;
     }
 
-    extractTaskData(payload) {
+    async extractTaskData(payload) {
         return {
             id: payload.id,
             tenCV: payload.tenCV,

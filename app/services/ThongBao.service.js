@@ -3,7 +3,7 @@ class NoficationService {
         this.mysql = mysql;
     }
 
-    extractNoficationData(payload) {
+    async extractNoficationData(payload) {
         return {
             id: payload.id,
             tieuDe: payload.tieuDe ?? null,

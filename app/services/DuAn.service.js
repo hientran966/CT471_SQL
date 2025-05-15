@@ -3,7 +3,7 @@ class ProjectService {
         this.mysql = mysql;
     }
 
-    extractProjectData(payload) {
+    async extractProjectData(payload) {
         return {
             id: payload.id,
             tenDA: payload.tenDA,

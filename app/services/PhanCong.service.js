@@ -3,7 +3,7 @@ class AssignmentService {
         this.mysql = mysql;
     }
 
-    extractAssignmentData(payload) {
+    async extractAssignmentData(payload) {
         return {
             id: payload.id,
             congViec: payload.congViec,
