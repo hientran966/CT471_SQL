@@ -5,6 +5,7 @@ const authRouter = require("./app/routes/TaiKhoan.route");
 const departmentRouter = require("./app/routes/PhongBan.route");
 const projectRouter = require("./app/routes/DuAn.route");
 const taskRouter = require("./app/routes/CongViec.route");
+const assignmentRouter = require("./app/routes/PhanCong.route");
 
 const app = express();
 
@@ -19,6 +20,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/phongban", departmentRouter);
 app.use("/api/duan", projectRouter);
 app.use("/api/congviec", taskRouter);
+app.use("/api/phancong", assignmentRouter);
 
 //handle 404
 app.use((req, res, next) => {

@@ -13,7 +13,7 @@ class AuthService {
             gioiTinh: payload.gioiTinh ?? "Nam",
             SDT: payload.SDT,
             diaChi: payload.diaChi,
-            vaiTro: payload.vaiTro ?? "NhanVien",
+            vaiTro: payload.vaiTro ?? "Nhân Viên",
             phongBan: payload.phongBan ?? null,
         };
         Object.keys(auth).forEach((key) => {
