@@ -25,17 +25,15 @@ class DepartmentService {
         );
         return { id: department.id, tenPhong: department.tenPhong };
     }
-
     async find(filter = {}) {
-        let sql = "SELECT * FROM PhongBan";
+        let sql = "SELECT * FROM PhongBan WHERE deactive IS NULL";
         let params = [];
         if (filter.tenPhong) {
-            sql += " WHERE tenPhong LIKE ?";
+            sql += " AND tenPhong LIKE ?";
             params.push(`%${filter.tenPhong}%`);
         }
         if (filter.phanQuyen) {
-            sql += params.length ? " AND" : " WHERE";
-            sql += " phanQuyen = ?";
+            sql += " AND phanQuyen = ?";
             params.push(filter.phanQuyen);
         }
         const [rows] = await this.mysql.execute(sql, params);
@@ -44,7 +42,7 @@ class DepartmentService {
 
     async findById(id) {
         const [rows] = await this.mysql.execute(
-            "SELECT * FROM PhongBan WHERE id = ?",
+            "SELECT * FROM PhongBan WHERE id = ? AND deactive IS NULL",
             [id]
         );
         return rows[0] || null;
@@ -66,12 +64,20 @@ class DepartmentService {
     }
 
     async delete(id) {
-        await this.mysql.execute("DELETE FROM PhongBan WHERE id = ?", [id]);
+        const deletedAt = new Date();
+        await this.mysql.execute(
+            "UPDATE PhongBan SET deactive = ? WHERE id = ?",
+            [deletedAt, id]
+        );
         return id;
     }
 
     async deleteAll() {
-        await this.mysql.execute("DELETE FROM PhongBan");
+        const deletedAt = new Date();
+        await this.mysql.execute(
+            "UPDATE PhongBan SET deactive = ? WHERE deactive IS NULL",
+            [deletedAt]
+        );
         return true;
     }
 }
