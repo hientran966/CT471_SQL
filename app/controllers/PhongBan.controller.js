@@ -4,7 +4,7 @@ const DepartmentService = require("../services/PhongBan.service");
 
 //Tạo phòng ban
 exports.create = async (req, res, next) => {
-    if (!req.body.tenPhongBan) {
+    if (!req.body.tenPhong) {
         return next(new ApiError(400, "Tên phòng ban không được để trống"));
     }
 
@@ -27,9 +27,9 @@ exports.findAll = async (req, res, next) => {
     try {
         const departmentService = new DepartmentService(MySQL.connection);
         //Nếu có tham số tìm kiếm thì tìm kiếm theo tham số đó
-        const {tenPhongBan} = req.query;
-        if (tenPhongBan) {
-            documents = await departmentService.findByName(tenPhongBan);
+        const {tenPhong} = req.query;
+        if (tenPhong) {
+            documents = await departmentService.findByName(tenPhong);
         } else {
             documents = await departmentService.find({});
         }
@@ -64,7 +64,7 @@ exports.findOne = async (req, res, next) => {
 
 //Cập nhật phòng ban
 exports.update = async (req, res, next) => {
-    if (!req.body.tenPhongBan) {
+    if (!req.body.tenPhong) {
         return next(new ApiError(400, "Tên phòng ban không được để trống"));
     }
 

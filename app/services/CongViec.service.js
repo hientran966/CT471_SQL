@@ -8,29 +8,37 @@ class TaskService {
             id: payload.id,
             tenCV: payload.tenCV,
             moTa: payload.moTa,
+            doUuTien: payload.doUuTien ?? "Thấp",
+            doQuanTrong: payload.doQuanTrong ?? 0,
             ngayBD: payload.ngayBD,
             ngayKT: payload.ngayKT,
-            soNgay: payload.soNgay,
             tienDo: payload.tienDo ?? 0,
             trangThai: payload.trangThai ?? "Chưa bắt đầu",
-            duAn: payload.duAn,
+            deactive: payload.deactive ?? null,
+            idNguoiTao: payload.idNguoiTao,
+            idNhomCV: payload.idNhomCV,
+            idDuAn: payload.idDuAn,
         };
     }
 
     async create(payload) {
-        const task = this.extractTaskData(payload);
+        const task = await this.extractTaskData(payload);
         const [result] = await this.mysql.execute(
-            "INSERT INTO CongViec (id, tenCV, moTa, ngayBD, ngayKT, soNgay, tienDo, trangThai, duAn) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO CongViec (id, tenCV, moTa, doUuTien, doQuanTrong, ngayBD, ngayKT, tienDo, trangThai, deactive, idNguoiTao, idNhomCV, idDuAn) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
                 task.id,
                 task.tenCV,
                 task.moTa,
+                task.doUuTien,
+                task.doQuanTrong,
                 task.ngayBD,
                 task.ngayKT,
-                task.soNgay,
                 task.tienDo,
                 task.trangThai,
-                task.duAn,
+                task.deactive,
+                task.idNguoiTao,
+                task.idNhomCV,
+                task.idDuAn,
             ]
         );
         return { id: result.insertId, ...task };
@@ -48,10 +56,10 @@ class TaskService {
             sql += " trangThai = ?";
             params.push(filter.trangThai);
         }
-        if (filter.duAn) {
+        if (filter.idDuAn) {
             sql += params.length ? " AND" : " WHERE";
-            sql += " duAn = ?";
-            params.push(filter.duAn);
+            sql += " idDuAn = ?";
+            params.push(filter.idDuAn);
         }
         if (filter.ngayBD) {
             sql += params.length ? " AND" : " WHERE";

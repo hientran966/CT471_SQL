@@ -9,24 +9,24 @@ class ProjectService {
             tenDA: payload.tenDA,
             ngayBD: payload.ngayBD,
             ngayKT: payload.ngayKT,
-            soNgay: payload.soNgay,
             trangThai: payload.trangThai ?? "Chưa bắt đầu",
-            phongBan: payload.phongBan,
+            deactive: payload.deactive ?? null,
+            idNguoiTao: payload.idNguoiTao,
         };
     }
 
     async create(payload) {
-        const project = this.extractProjectData(payload);
+        const project = await this.extractProjectData(payload);
         const [result] = await this.mysql.execute(
-            "INSERT INTO DuAn (id, tenDA, ngayBD, ngayKT, soNgay, trangThai, phongBan) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO DuAn (id, tenDA, ngayBD, ngayKT, deactive, trangThai, idNguoiTao) VALUES (?, ?, ?, ?, ?, ?, ?)",
             [
                 project.id,
                 project.tenDA,
                 project.ngayBD,
                 project.ngayKT,
-                project.soNgay,
+                project.deactive,
                 project.trangThai,
-                project.phongBan,
+                project.idNguoiTao,
             ]
         );
         return { ...project };
@@ -44,10 +44,10 @@ class ProjectService {
             sql += " trangThai = ?";
             params.push(filter.trangThai);
         }
-        if (filter.phongBan) {
+        if (filter.idNguoiTao) {
             sql += params.length ? " AND" : " WHERE";
-            sql += " phongBan = ?";
-            params.push(filter.phongBan);
+            sql += " idNguoiTao = ?";
+            params.push(filter.idNguoiTao);
         }
         if (filter.ngayBD) {
             sql += params.length ? " AND" : " WHERE";
@@ -72,7 +72,7 @@ class ProjectService {
     }
 
     async update(id, payload) {
-        const project = this.extractProjectData(payload);
+        const project = await this.extractProjectData(payload);
         let sql = "UPDATE DuAn SET ";
         const fields = [];
         const params = [];

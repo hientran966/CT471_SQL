@@ -6,28 +6,37 @@ class DepartmentService {
     async extractDepartmentData(payload) {
         return {
             id: payload.id,
-            tenPhongBan: payload.tenPhongBan,
+            tenPhong: payload.tenPhong,
+            phanQuyen: payload.phanQuyen ?? "Thấp",
+            deactive: payload.deactive ?? null,
         };
     }
 
     async create(payload) {
-        const department = this.extractDepartmentData(payload);
+        const department = await this.extractDepartmentData(payload);
         const [result] = await this.mysql.execute(
-            "INSERT INTO PhongBan (id, tenPhongBan) VALUES (?, ?)",
+            "INSERT INTO PhongBan (id, tenPhong, phanQuyen, deactive) VALUES (?, ?, ?, ?)",
             [
                 department.id,
-                department.tenPhongBan
+                department.tenPhong,
+                department.phanQuyen,
+                department.deactive,
             ]
         );
-        return { id: department.id, tenPhongBan: department.tenPhongBan };
+        return { id: department.id, tenPhong: department.tenPhong };
     }
 
     async find(filter = {}) {
         let sql = "SELECT * FROM PhongBan";
         let params = [];
-        if (filter.tenPhongBan) {
-            sql += " WHERE tenPhongBan LIKE ?";
-            params.push(`%${filter.tenPhongBan}%`);
+        if (filter.tenPhong) {
+            sql += " WHERE tenPhong LIKE ?";
+            params.push(`%${filter.tenPhong}%`);
+        }
+        if (filter.phanQuyen) {
+            sql += params.length ? " AND" : " WHERE";
+            sql += " phanQuyen = ?";
+            params.push(filter.phanQuyen);
         }
         const [rows] = await this.mysql.execute(sql, params);
         return rows;
@@ -42,7 +51,7 @@ class DepartmentService {
     }
 
     async update(id, payload) {
-        const department = this.extractDepartmentData(payload);
+        const department = await this.extractDepartmentData(payload);
         let sql = "UPDATE PhongBan SET ";
         const fields = [];
         const params = [];
@@ -53,7 +62,7 @@ class DepartmentService {
         sql += fields.join(", ") + " WHERE id = ?";
         params.push(id);
         await this.mysql.execute(sql, params);
-        return { id: department.id, tenPhongBan: department.tenPhongBan };
+        return { id: department.id, tenPhong: department.tenPhong };
     }
 
     async delete(id) {
