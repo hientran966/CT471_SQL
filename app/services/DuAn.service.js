@@ -33,30 +33,26 @@ class ProjectService {
     }
 
     async find(filter = {}) {
-        let sql = "SELECT * FROM DuAn";
+        let sql = "SELECT * FROM DuAn WHERE deactive IS NULL";
         let params = [];
         if (filter.tenDA) {
-            sql += " WHERE tenDA LIKE ?";
+            sql += " AND tenDA LIKE ?";
             params.push(`%${filter.tenDA}%`);
         }
         if (filter.trangThai) {
-            sql += params.length ? " AND" : " WHERE";
-            sql += " trangThai = ?";
+            sql += " AND trangThai = ?";
             params.push(filter.trangThai);
         }
         if (filter.idNguoiTao) {
-            sql += params.length ? " AND" : " WHERE";
-            sql += " idNguoiTao = ?";
+            sql += " AND idNguoiTao = ?";
             params.push(filter.idNguoiTao);
         }
         if (filter.ngayBD) {
-            sql += params.length ? " AND" : " WHERE";
-            sql += " ngayBD >= ?";
+            sql += " AND ngayBD >= ?";
             params.push(filter.ngayBD);
         }
         if (filter.ngayKT) {
-            sql += params.length ? " AND" : " WHERE";
-            sql += " ngayKT <= ?";
+            sql += " AND ngayKT <= ?";
             params.push(filter.ngayKT);
         }
         const [rows] = await this.mysql.execute(sql, params);
@@ -65,7 +61,7 @@ class ProjectService {
 
     async findById(id) {
         const [rows] = await this.mysql.execute(
-            "SELECT * FROM DuAn WHERE id = ?",
+            "SELECT * FROM DuAn WHERE id = ? AND deactive IS NULL",
             [id]
         );
         return rows[0] || null;
@@ -87,12 +83,20 @@ class ProjectService {
     }
 
     async delete(id) {
-        await this.mysql.execute("DELETE FROM DuAn WHERE id = ?", [id]);
+        const deletedDate = new Date().toISOString().slice(0, 19).replace('T', ' ');
+        await this.mysql.execute(
+            "UPDATE DuAn SET deactive = ? WHERE id = ?",
+            [deletedDate, id]
+        );
         return id;
     }
 
     async deleteAll() {
-        await this.mysql.execute("DELETE FROM DuAn");
+        const deletedDate = new Date().toISOString().slice(0, 19).replace('T', ' ');
+        await this.mysql.execute(
+            "UPDATE DuAn SET deactive = ? WHERE deactive IS NULL",
+            [deletedDate]
+        );
         return true;
     }
 }
