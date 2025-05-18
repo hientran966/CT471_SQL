@@ -72,6 +72,14 @@ class DepartmentService {
         return id;
     }
 
+    async restore(id) {
+        const [result] = await this.mysql.execute(
+            "UPDATE PhongBan SET deactive = NULL WHERE id = ?",
+            [id]
+        );
+        return result.affectedRows > 0;
+    }
+
     async deleteAll() {
         const deletedAt = new Date();
         await this.mysql.execute(

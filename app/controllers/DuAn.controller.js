@@ -100,6 +100,20 @@ exports.delete = async (req, res, next) => {
     }
 };
 
+//Khôi phục dự án
+exports.restore = async (req, res, next) => {
+    try {
+        const projectService = new ProjectService(MySQL.connection);
+        await projectService.restore(req.params.id);
+        return res.send({ message: "Khôi phục dự án thành công" });
+    } catch (error) {
+        console.error(error);
+        return next(
+            new ApiError(500, "Đã xảy ra lỗi khi khôi phục dự án")
+        );
+    }
+};
+
 //Xóa tất cả dự án
 exports.deleteAll = async (req, res, next) => {
     try {

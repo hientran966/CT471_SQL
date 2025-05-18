@@ -98,6 +98,22 @@ exports.delete = async (req, res, next) => {
     }
 };
 
+//Khoi phục tài khoản
+exports.restore = async (req, res, next) => {
+    try {
+        const authService = new AuthService(MySQL.connection);
+        const document = await authService.restore(req.params.id);
+        if (!document) {
+            return next(new ApiError(404, "Account not found"));
+        }
+        return res.send({message: "Account was restored successfully"});
+    } catch (error) {
+        return next(
+            new ApiError(500, `Could not restore account with id=${req.params.id}`)
+        );
+    }
+};
+
 //Xóa tất cả tài khoản
 exports.deleteAll = async (_req, res, next) => {
     try {

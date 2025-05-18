@@ -100,6 +100,23 @@ exports.delete = async (req, res, next) => {
     }
 };
 
+//Khôi phục phòng ban
+exports.restore = async (req, res, next) => {
+    try {
+        const departmentService = new DepartmentService(MySQL.connection);
+        await departmentService.restore(req.params.id);
+        return res.send({ message: "Khôi phục thành công" });
+    } catch (error) {
+        console.error(error);
+        return next(
+            new ApiError(
+                500,
+                `Đã xảy ra lỗi khi khôi phục phòng ban với id=${req.params.id}`
+            )
+        );
+    }
+};
+
 //Xóa tất cả phòng ban
 exports.deleteAll = async (req, res, next) => {
     try {

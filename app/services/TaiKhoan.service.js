@@ -123,6 +123,14 @@ class AuthService {
         return { ...user, deactive: deletedAt };
     }
 
+    async restore(id) {
+        const [result] = await this.mysql.execute(
+            "UPDATE TaiKhoan SET deactive = NULL WHERE id = ?",
+            [id]
+        );
+        return result.affectedRows > 0;
+    }
+
     async deleteAll() {
         const deletedAt = new Date();
         await this.mysql.execute("UPDATE TaiKhoan SET deactive = ?", [deletedAt]);

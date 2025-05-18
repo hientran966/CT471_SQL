@@ -91,6 +91,14 @@ class ProjectService {
         return id;
     }
 
+    async restore(id) {
+        const [result] = await this.mysql.execute(
+            "UPDATE DuAn SET deactive = NULL WHERE id = ?",
+            [id]
+        );
+        return result.affectedRows > 0;
+    }
+
     async deleteAll() {
         const deletedDate = new Date().toISOString().slice(0, 19).replace('T', ' ');
         await this.mysql.execute(
