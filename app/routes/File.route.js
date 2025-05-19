@@ -13,4 +13,11 @@ router.route("/:id")
     .put(file.update)
     .delete(file.delete);
 
+router.route("/:id/version")
+    .get(file.findAllVersion)
+    .post(file.addVersion);
+
+router.route("/:id/version/:versionId")
+    .get(file.findVersion)
+
 module.exports = router;

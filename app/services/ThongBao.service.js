@@ -8,25 +8,33 @@ class NoficationService {
             id: payload.id,
             tieuDe: payload.tieuDe ?? null,
             noiDung: payload.noiDung,
-            nguoiDang: payload.nguoiDang,
-            ngayDang: payload.ngayDang,
-            duAn: payload.duAn,
-            phanHoi: payload.phanHoi ?? null,
+            idNguoiDang: payload.idNguoiDang,
+            ngayDang: payload.ngayDang ?? new Date(),
+            deactive: payload.deactive ?? null,
+            idPhanCong: payload.idPhanCong ?? null,
+            idCongViec: payload.idCongViec ?? null,
+            idNhomCV: payload.idNhomCV ?? null,
+            idDuAn: payload.idDuAn ?? null,
+            idPhanHoi: payload.idPhanHoi ?? null,
         };
     }
 
     async create(payload) {
-        const nofication = this.extractNoficationData(payload);
+        const nofication = await this.extractNoficationData(payload);
         const [result] = await this.mysql.execute(
-            "INSERT INTO ThongBao (id, tieuDe, noiDung, nguoiDang, ngayDang, duAn, phanHoi) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO ThongBao (id, tieuDe, noiDung, idNguoiDang, ngayDang, deactive, idPhanCong, idCongViec, idNhomCV, idDuAn, idPhanHoi) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
                 nofication.id,
                 nofication.tieuDe,
                 nofication.noiDung,
-                nofication.nguoiDang,
+                nofication.idNguoiDang,
                 nofication.ngayDang,
-                nofication.duAn,
-                nofication.phanHoi,
+                nofication.deactive,
+                nofication.idPhanCong,
+                nofication.idCongViec,
+                nofication.idNhomCV,
+                nofication.idDuAn,
+                nofication.idPhanHoi,
             ]
         );
         return { ...nofication };
@@ -39,15 +47,15 @@ class NoficationService {
             sql += " WHERE tieuDe LIKE ?";
             params.push(`%${filter.tieuDe}%`);
         }
-        if (filter.nguoiDang) {
+        if (filter.idNguoiDang) {
             sql += params.length ? " AND" : " WHERE";
-            sql += " nguoiDang = ?";
-            params.push(filter.nguoiDang);
+            sql += " idNguoiDang = ?";
+            params.push(filter.idNguoiDang);
         }
-        if (filter.duAn) {
+        if (filter.idDuAn) {
             sql += params.length ? " AND" : " WHERE";
-            sql += " duAn = ?";
-            params.push(filter.duAn);
+            sql += " idDuAn = ?";
+            params.push(filter.idDuAn);
         }
         const [rows] = await this.mysql.execute(sql, params);
         return rows;
@@ -55,7 +63,7 @@ class NoficationService {
 
     async findById(id) {
         const [rows] = await this.mysql.execute(
-            "SELECT * FROM ThongBao WHERE id = ?",
+            "SELECT * FROM ThongBao WHERE id = ? AND deactive IS NULL",
             [id]
         );
         return rows[0] || null;
@@ -67,6 +75,7 @@ class NoficationService {
         const fields = [];
         const params = [];
         for (const key in nofication) {
+            if (key === "id") continue;
             fields.push(`${key} = ?`);
             params.push(nofication[key]);
         }
@@ -77,12 +86,28 @@ class NoficationService {
     }
     
     async delete(id) {
-        await this.mysql.execute("DELETE FROM ThongBao WHERE id = ?", [id]);
+        const deleteAt = new Date();
+        await this.mysql.execute(
+            "UPDATE ThongBao SET deactive = ? WHERE id = ?",
+            [deleteAt, id]
+        );
         return id;
     }
 
+    async restore(id) {
+        const [result] = await this.mysql.execute(
+            "UPDATE ThongBao SET deactive = NULL WHERE id = ?",
+            [id]
+        );
+        return result.affectedRows > 0;
+    }
+
     async deleteAll() {
-        await this.mysql.execute("DELETE FROM ThongBao");
+        const deleteAt = new Date();
+        await this.mysql.execute(
+            "UPDATE ThongBao SET deactive = ?",
+            [deleteAt]
+        );
         return true;
     }
 }

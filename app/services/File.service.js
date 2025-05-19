@@ -10,10 +10,19 @@ class FileService {
         return {
             id: payload.id,
             tenFile: payload.tenFile ?? null,
-            nguoiTao: payload.nguoiTao ?? null,
-            duAn: payload.duAn ?? null,
-            ngayUpload: payload.ngayUpload ?? new Date(),
-            soPB: payload.soPB ?? 0,
+            idNguoiTao: payload.idNguoiTao ?? null,
+            idCongViec: payload.idCongViec ?? null,
+            deactive: payload.deactive ?? null,
+        };
+    }
+
+    async extractVersionData(payload) {
+        return {
+            id: payload.id,
+            soPB: payload.soPB ?? null,
+            ngayUpload: payload.ngayUpload ?? null,
+            deactive: payload.deactive ?? null,
+            idFile: payload.idFile ?? null,
         };
     }
 
@@ -34,44 +43,68 @@ class FileService {
     }
 
     async create(payload) {
+        // Kiểm tra payload hợp lệ
+        if (!payload || !payload.id || !payload.tenFile || !payload.idNguoiTao) {
+            throw new Error("Thiếu thông tin bắt buộc khi tạo file.");
+        }
+
         // Nếu có file base64 thì lưu file vật lý trước
         let duongDan = null;
         if (payload.fileDataBase64 && payload.tenFile) {
             duongDan = await this.saveFileFromPayload(payload);
         }
+
         const file = await this.extractFileData(payload);
-        file.duongDan = duongDan; // Gán đường dẫn file
-        const [result] = await this.mysql.execute(
-            "INSERT INTO File (id, tenFile, nguoiTao, duAn, ngayUpload, duongDan, soPB) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        const version = await this.extractVersionData(payload);
+        version.duongDan = duongDan || null;
+
+        // Tạo file
+        const [fileResult] = await this.mysql.execute(
+            "INSERT INTO File (id, tenFile, idNguoiTao, idCongViec) VALUES (?, ?, ?, ?)",
             [
                 file.id,
                 file.tenFile,
-                file.nguoiTao,
-                file.duAn,
-                file.ngayUpload,
-                file.duongDan,
-                file.soPB,
+                file.idNguoiTao,
+                file.idCongViec,
             ]
         );
-        return { ...file };
+
+        // Tạo phiên bản đầu tiên cho file
+        const [verResult] = await this.mysql.execute(
+            "INSERT INTO PhienBan (id, soPB, duongDan, ngayUpload, deactive, idFile) VALUES (?, ?, ?, ?, ?, ?)",
+            [
+                version.id,
+                version.soPB,
+                version.duongDan,
+                version.ngayUpload,
+                version.deactive,
+                file.id,
+            ]
+        );
+
+        return {
+            ...file,
+            version: {
+                ...version,
+                idFile: file.id
+            }
+        };
     }
 
     async find(filter = {}) {
-        let sql = "SELECT * FROM File";
+        let sql = "SELECT * FROM File WHERE deactive IS NULL";
         let params = [];
         if (filter.tenFile) {
-            sql += " WHERE tenFile LIKE ?";
+            sql += " AND tenFile LIKE ?";
             params.push(`%${filter.tenFile}%`);
         }
-        if (filter.nguoiTao) {
-            sql += params.length ? " AND" : " WHERE";
-            sql += " nguoiTao = ?";
-            params.push(filter.nguoiTao);
+        if (filter.idNguoiTao) {
+            sql += " AND idNguoiTao = ?";
+            params.push(filter.idNguoiTao);
         }
-        if (filter.duAn) {
-            sql += params.length ? " AND" : " WHERE";
-            sql += " duAn = ?";
-            params.push(filter.duAn);
+        if (filter.idCongViec) {
+            sql += " AND idCongViec = ?";
+            params.push(filter.idCongViec);
         }
         const [rows] = await this.mysql.execute(sql, params);
         return rows;
@@ -79,24 +112,35 @@ class FileService {
 
     async findById(id) {
         const [rows] = await this.mysql.execute(
-            "SELECT * FROM File WHERE id = ?",
+            "SELECT * FROM File WHERE id = ? AND deactive IS NULL",
+            [id]
+        );
+        return rows[0] || null;
+    }
+
+    async findVersion(id) {
+        const [rows] = await this.mysql.execute(
+            "SELECT * FROM PhienBan WHERE idFile = ? AND deactive IS NULL",
+            [id]
+        );
+        return rows || null;
+    }
+
+    async findVersionById(id) {
+        const [rows] = await this.mysql.execute(
+            "SELECT * FROM PhienBan WHERE id = ? AND deactive IS NULL",
             [id]
         );
         return rows[0] || null;
     }
 
     async update(id, payload) {
-        // Nếu có file base64 thì lưu file vật lý trước
-        let duongDan = null;
-        if (payload.fileDataBase64 && payload.tenFile) {
-            duongDan = await this.saveFileFromPayload(payload);
-        }
-        const file = this.extractFileData(payload);
-        if (duongDan) file.duongDan = duongDan;
+        const file = await this.extractFileData(payload);
         let sql = "UPDATE File SET ";
         const fields = [];
         const params = [];
         for (const key in file) {
+            if (key === 'id') continue;
             fields.push(`${key} = ?`);
             params.push(file[key]);
         }
@@ -106,29 +150,72 @@ class FileService {
         return { ...file };
     }
 
-    async delete(id) {
-        // Xóa file vật lý nếu cần
-        const file = await this.findById(id);
-        if (file && file.tenFile) {
-            const filePath = path.join(__dirname, '../../uploads', file.tenFile);
-            if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath);
-            }
+    async addVersion(id, payload) {
+        // Kiểm tra id và payload hợp lệ
+        if (!id || !payload) {
+            throw new Error("Thiếu id hoặc payload khi thêm phiên bản file.");
         }
-        await this.mysql.execute("DELETE FROM File WHERE id = ?", [id]);
+        // Nếu có file base64 thì lưu file vật lý trước
+        let duongDan = null;
+        if (payload.fileDataBase64 && payload.tenFile) {
+            duongDan = await this.saveFileFromPayload(payload);
+        }
+        const version = await this.extractVersionData(payload);
+        if (duongDan) version.duongDan = duongDan;
+        const [result] = await this.mysql.execute(
+            "INSERT INTO PhienBan (id, soPB, duongDan, ngayUpload, deactive, idFile) VALUES (?, ?, ?, ?, ?, ?)",
+            [
+                version.id,
+                version.soPB,
+                version.duongDan,
+                version.ngayUpload,
+                version.deactive,
+                id,
+            ]
+        );
+        return { ...version, idFile: id };
+    }
+
+    async updateVersion(id, payload) {
+        const version = await this.extractVersionData(payload);
+        let sql = "UPDATE PhienBan SET ";
+        const fields = [];
+        const params = [];
+        for (const key in version) {
+            if (key === 'id') continue;
+            fields.push(`${key} = ?`);
+            params.push(version[key]);
+        }
+        sql += fields.join(", ") + " WHERE id = ?";
+        params.push(id);
+        await this.mysql.execute(sql, params);
+        return { ...version };
+    }
+
+    async delete(id) {
+        const deleteAt = new Date();
+        await this.mysql.execute(
+            "UPDATE File SET deactive = ? WHERE id = ?",
+            [deleteAt, id]
+        );
         return id;
     }
 
+    async restore(id) {
+        const [result] = await this.mysql.execute(
+            "UPDATE File SET deactive = NULL WHERE id = ?",
+            [id]
+        );
+        return result.affectedRows > 0;
+    }
+
     async deleteAll() {
-        // Xóa tất cả file vật lý trong thư mục uploads
-        const uploadsDir = path.join(__dirname, '../../uploads');
-        if (fs.existsSync(uploadsDir)) {
-            fs.readdirSync(uploadsDir).forEach(file => {
-                fs.unlinkSync(path.join(uploadsDir, file));
-            });
-        }
-        await this.mysql.execute("DELETE FROM File");
-        return true;
+        const deleteAt = new Date();
+        await this.mysql.execute(
+            "UPDATE File SET deactive = ?",
+            [deleteAt]
+        );
+        return deleteAt;
     }
 }
 

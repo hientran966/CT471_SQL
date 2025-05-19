@@ -27,11 +27,12 @@ exports.findAll = async (req, res, next) => {
     try {
         const taskGroupService = new TaskGroupService(MySQL.connection);
         //Nếu có tham số tìm kiếm thì tìm kiếm theo tham số đó
-        const {tenNhom, duAn} = req.query;
-        if (tenNhom || duAn) {
+        const {tenNhom, idDuAn, idNguoiTao} = req.query;
+        if (tenNhom || idDuAn || idNguoiTao) {
             documents = await taskGroupService.find({
                 tenNhom,
-                duAn
+                idDuAn,
+                idNguoiTao,
             });
         } else {
             documents = await taskGroupService.find({});

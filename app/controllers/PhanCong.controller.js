@@ -4,10 +4,10 @@ const AssignmentService = require("../services/PhanCong.service");
 
 //Thêm mới
 exports.create = async (req, res, next) => {
-    if (!req.body.nguoiNhan) {
+    if (!req.body.idNguoiNhan) {
         return next(new ApiError(400, "Người nhận không được để trống"));
     }
-    if (!req.body.congViec) {
+    if (!req.body.idCongViec) {
         return next(new ApiError(400, "Công việc không được để trống"));
     }
     try {
@@ -29,14 +29,14 @@ exports.findAll = async (req, res, next) => {
     try {
         const assignmentService = new AssignmentService(MySQL.connection);
         //Nếu có tham số tìm kiếm thì tìm kiếm theo tham số đó
-        const {ngayNhan, ngayHoanTat, trangThai, nguoiNhan, congViec} = req.query;
-        if (ngayNhan || ngayHoanTat || trangThai || nguoiNhan || congViec) {
+        const {ngayNhan, ngayHoanTat, trangThai, idNguoiNhan, idCongViec} = req.query;
+        if (ngayNhan || ngayHoanTat || trangThai || idNguoiNhan || idCongViec) {
             documents = await assignmentService.find({
                 ngayNhan,
                 ngayHoanTat,
                 trangThai,
-                nguoiNhan,
-                congViec
+                idNguoiNhan,
+                idCongViec
             });
         } else {
             documents = await assignmentService.find({});
@@ -106,6 +106,23 @@ exports.delete = async (req, res, next) => {
                 500,
                 `Đã xảy ra lỗi khi xóa tham gia với id=${req.params.id}`
             )
+        );
+    }
+};
+
+//Khôi phục
+exports.restore = async (req, res, next) => {
+    try {
+        const assignmentService = new AssignmentService(MySQL.connection);
+        const document = await assignmentService.restore(req.params.id);
+        if (!document){
+            return next(new ApiError(404, "Tham gia không tồn tại"));
+        }
+        return res.send({message: "Khôi phục tham gia thành công"});
+    } catch (error) {
+        console.error(error);
+        return next(
+            new ApiError(500, "Đã xảy ra lỗi khi khôi phục tham gia")
         );
     }
 };

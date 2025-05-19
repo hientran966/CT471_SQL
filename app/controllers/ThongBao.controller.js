@@ -27,12 +27,18 @@ exports.findAll = async (req, res, next) => {
     try {
         const noficationService = new NoficationService(MySQL.connection);
         //Nếu có tham số tìm kiếm thì tìm kiếm theo tham số đó
-        const {noiDung, trangThai, nguoiGui} = req.query;
-        if (noiDung || trangThai || nguoiGui) {
+        const {noiDung, tieuDe, ngayDang, idNguoiDang, idPhanCong, idCongViec, idNhomCV, idDuAn, idPhanHoi} = req.query;
+        if (noiDung || tieuDe || ngayDang || idNguoiDang || idPhanCong || idCongViec || idNhomCV || idDuAn || idPhanHoi) {
             documents = await noficationService.find({
                 noiDung,
-                trangThai,
-                nguoiGui
+                tieuDe,
+                ngayDang,
+                idNguoiDang,
+                idPhanCong,
+                idCongViec,
+                idNhomCV,
+                idDuAn,
+                idPhanHoi
             });
         } else {
             documents = await noficationService.find({});

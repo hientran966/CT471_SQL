@@ -54,6 +54,7 @@ class DepartmentService {
         const fields = [];
         const params = [];
         for (const key in department) {
+            if (key === "id") continue;
             fields.push(`${key} = ?`);
             params.push(department[key]);
         }

@@ -27,14 +27,16 @@ exports.findAll = async (req, res, next) => {
     try {
         const taskService = new TaskService(MySQL.connection);
         //Nếu có tham số tìm kiếm thì tìm kiếm theo tham số đó
-        const {tenCV, trangThai, duAn, ngayBD, ngayKT} = req.query;
-        if (tenCV || trangThai || duAn || ngayBD || ngayKT) {
+        const {tenCV, trangThai, idDuAn, ngayBD, ngayKT, idNhomCV, idNguoiTao} = req.query;
+        if (tenCV || trangThai || idDuAn || ngayBD || ngayKT || idNhomCV || idNguoiTao) {
             documents = await taskService.find({
                 tenCV,
                 trangThai,
-                duAn,
+                idDuAn,
                 ngayBD,
-                ngayKT
+                ngayKT,
+                idNhomCV,
+                idNguoiTao,
             });
         } else {
             documents = await taskService.find({});
@@ -96,6 +98,23 @@ exports.delete = async (req, res, next) => {
         console.error(error);
         return next(
             new ApiError(500, "Đã xảy ra lỗi khi xóa công việc")
+        );
+    }
+};
+
+//Khôi phục công việc
+exports.restore = async (req, res, next) => {
+    try {
+        const taskService = new TaskService(MySQL.connection);
+        const document = await taskService.restore(req.params.id);
+        if (!document) {
+            return next(new ApiError(404, "Công việc không tồn tại"));
+        }
+        return res.send({ message: "Khôi phục công việc thành công" });
+    } catch (error) {
+        console.error(error);
+        return next(
+            new ApiError(500, "Đã xảy ra lỗi khi khôi phục công việc")
         );
     }
 };

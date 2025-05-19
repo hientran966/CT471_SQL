@@ -16,7 +16,7 @@ class TaskService {
             trangThai: payload.trangThai ?? "Chưa bắt đầu",
             deactive: payload.deactive ?? null,
             idNguoiTao: payload.idNguoiTao,
-            idNhomCV: payload.idNhomCV,
+            idNhomCV: payload.idNhomCV ?? null,
             idDuAn: payload.idDuAn,
         };
     }
@@ -24,7 +24,7 @@ class TaskService {
     async create(payload) {
         const task = await this.extractTaskData(payload);
         const [result] = await this.mysql.execute(
-            "INSERT INTO CongViec (id, tenCV, moTa, doUuTien, doQuanTrong, ngayBD, ngayKT, tienDo, trangThai, deactive, idNguoiTao, idNhomCV, idDuAn) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO CongViec (id, tenCV, moTa, doUuTien, doQuanTrong, ngayBD, ngayKT, tienDo, trangThai, deactive, idNguoiTao, idNhomCV, idDuAn) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
                 task.id,
                 task.tenCV,
@@ -45,31 +45,36 @@ class TaskService {
     }
 
     async find(filter = {}) {
-        let sql = "SELECT * FROM CongViec";
+        let sql = "SELECT * FROM CongViec WHERE deactive IS NULL";
         let params = [];
+
         if (filter.tenCV) {
-            sql += " WHERE tenCV LIKE ?";
+            sql += " AND tenCV LIKE ?";
             params.push(`%${filter.tenCV}%`);
         }
         if (filter.trangThai) {
-            sql += params.length ? " AND" : " WHERE";
-            sql += " trangThai = ?";
+            sql += " AND trangThai = ?";
             params.push(filter.trangThai);
         }
         if (filter.idDuAn) {
-            sql += params.length ? " AND" : " WHERE";
-            sql += " idDuAn = ?";
+            sql += " AND idDuAn = ?";
             params.push(filter.idDuAn);
         }
         if (filter.ngayBD) {
-            sql += params.length ? " AND" : " WHERE";
-            sql += " ngayBD >= ?";
+            sql += " AND ngayBD >= ?";
             params.push(filter.ngayBD);
         }
         if (filter.ngayKT) {
-            sql += params.length ? " AND" : " WHERE";
-            sql += " ngayKT <= ?";
+            sql += " AND ngayKT <= ?";
             params.push(filter.ngayKT);
+        }
+        if (filter.idNhomCV) {
+            sql += " AND idNhomCV = ?";
+            params.push(filter.idNhomCV);
+        }
+        if (filter.idNguoiTao) {
+            sql += " AND idNguoiTao = ?";
+            params.push(filter.idNguoiTao);
         }
         const [rows] = await this.mysql.execute(sql, params);
         return rows;
@@ -77,34 +82,47 @@ class TaskService {
 
     async findById(id) {
         const [rows] = await this.mysql.execute(
-            "SELECT * FROM CongViec WHERE id = ?",
+            "SELECT * FROM CongViec WHERE id = ? AND deactive IS NULL",
             [id]
         );
         return rows[0] || null;
     }
 
     async update(id, payload) {
-        const task = this.extractTaskData(payload);
+        const task = await this.extractTaskData(payload);
         let sql = "UPDATE CongViec SET ";
         const fields = [];
         const params = [];
         for (const key in task) {
+            if (key === "id") continue;
             fields.push(`${key} = ?`);
             params.push(task[key]);
         }
         sql += fields.join(", ") + " WHERE id = ?";
         params.push(id);
         await this.mysql.execute(sql, params);
-        return { ...task };
+        return { ...task, id };
     }
 
     async delete(id) {
-        await this.mysql.execute("DELETE FROM CongViec WHERE id = ?", [id]);
-        return id;
+        const user = await this.findById(id);
+        if (!user) return null;
+        const deletedAt = new Date();
+        await this.mysql.execute("UPDATE CongViec SET deactive = ? WHERE id = ?", [deletedAt, id]);
+        return { ...user, deactive: deletedAt };
+    }
+
+    async restore(id) {
+        const [result] = await this.mysql.execute(
+            "UPDATE CongViec SET deactive = NULL WHERE id = ?",
+            [id]
+        );
+        return result.affectedRows > 0;
     }
 
     async deleteAll() {
-        await this.mysql.execute("DELETE FROM CongViec");
+        const deletedAt = new Date();
+        await this.mysql.execute("UPDATE CongViec SET deactive = ?", [deletedAt]);
         return true;
     }
 }

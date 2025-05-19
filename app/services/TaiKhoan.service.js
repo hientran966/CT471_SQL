@@ -101,6 +101,8 @@ class AuthService {
         const fields = [];
         const params = [];
         for (const key in update) {
+            if (key === "id") continue;
+            if (key === "Password") continue;
             fields.push(`${key} = ?`);
             params.push(update[key]);
         }

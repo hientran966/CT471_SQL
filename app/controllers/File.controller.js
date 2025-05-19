@@ -54,11 +54,42 @@ exports.findOne = async (req, res, next) => {
     }
 };
 
+// Lấy tất cả phiên bản file
+exports.findAllVersion = async (req, res, next) => {
+    try {
+        const fileService = new FileService(MySQL.connection);
+        const document = await fileService.findVersion(req.params.id);
+        if (!document) {
+            return next(new ApiError(404, "File không tồn tại"));
+        }
+        return res.json(document);
+    } catch (error) {
+        console.error(error);
+        return next(
+            new ApiError(500, `Đã xảy ra lỗi khi lấy tất cả phiên bản file`)
+        );
+    }
+};
+
+// Lấy phiên bản file theo id
+exports.findVersion = async (req, res, next) => {
+    try {
+        const fileService = new FileService(MySQL.connection);
+        const document = await fileService.findVersionById(req.params.id);
+        if (!document) {
+            return next(new ApiError(404, "File không tồn tại"));
+        }
+        return res.json(document);
+    } catch (error) {
+        console.error(error);
+        return next(
+            new ApiError(500, `Đã xảy ra lỗi khi lấy phiên bản file`)
+        );
+    }
+};
+
 // Cập nhật file
 exports.update = async (req, res, next) => {
-    if (!req.body.tenFile) {
-        return next(new ApiError(400, "Tên file không được để trống"));
-    }
     try {
         const fileService = new FileService(MySQL.connection);
         const document = await fileService.update(req.params.id, req.body);
@@ -69,6 +100,21 @@ exports.update = async (req, res, next) => {
     } catch (error) {
         console.error(error);
         return next(new ApiError(500, "Đã xảy ra lỗi khi cập nhật file"));
+    }
+};
+
+// Thêm phiên bản file
+exports.addVersion = async (req, res, next) => {
+    try {
+        const fileService = new FileService(MySQL.connection);
+        const document = await fileService.addVersion(req.params.id, req.body);
+        if (!document) {
+            return next(new ApiError(404, "File không tồn tại"));
+        }
+        return res.json(document);
+    } catch (error) {
+        console.error(error);
+        return next(new ApiError(500, "Đã xảy ra lỗi khi thêm phiên bản file"));
     }
 };
 

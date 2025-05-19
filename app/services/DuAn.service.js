@@ -73,6 +73,7 @@ class ProjectService {
         const fields = [];
         const params = [];
         for (const key in project) {
+            if (key === "id") continue;
             fields.push(`${key} = ?`);
             params.push(project[key]);
         }

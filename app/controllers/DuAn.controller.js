@@ -27,12 +27,12 @@ exports.findAll = async (req, res, next) => {
     try {
         const projectService = new ProjectService(MySQL.connection);
         //Nếu có tham số tìm kiếm thì tìm kiếm theo tham số đó
-        const {tenDA, trangThai, phongBan, ngayBD, ngayKT} = req.query;
-        if (tenDA || trangThai || phongBan || ngayBD || ngayKT) {
+        const {tenDA, trangThai, idNguoiTao, ngayBD, ngayKT} = req.query;
+        if (tenDA || trangThai || idNguoiTao || ngayBD || ngayKT) {
             documents = await projectService.find({
                 tenDA,
                 trangThai,
-                phongBan,
+                idNguoiTao,
                 ngayBD,
                 ngayKT
             });

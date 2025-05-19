@@ -50,13 +50,13 @@ class TaskGroupService {
         );
         return rows[0] || null;
     }
-
     async update(id, payload) {
         const taskGroup = await this.extractTaskGroupData(payload);
         let sql = "UPDATE NhomCongViec SET ";
         const fields = [];
         const params = [];
         for (const key in taskGroup) {
+            if (key === "id") continue;
             fields.push(`${key} = ?`);
             params.push(taskGroup[key]);
         }
@@ -91,3 +91,5 @@ class TaskGroupService {
         return deletedAt;
     }
 }
+
+module.exports = TaskGroupService;

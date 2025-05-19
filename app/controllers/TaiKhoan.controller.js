@@ -27,9 +27,12 @@ exports.findAll = async (req, res, next) => {
     try {
         const authService = new AuthService(MySQL.connection);
         //Nếu có tham số tìm kiếm thì tìm kiếm theo tham số đó
-        const {tenNV} = req.query;
-        if (tenNV) {
-            documents = await authService.findBytenNV(tenNV);
+        const {tenNV, email} = req.query;
+        if (tenNV || email) {
+            documents = await authService.find({
+                tenNV,
+                email
+            });
         } else {
             documents = await authService.find({});
         }
