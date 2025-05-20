@@ -22,6 +22,29 @@ exports.create = async (req, res, next) => {
     }
 };
 
+//Chuyển giao
+exports.transfer = async (req, res, next) => {
+    if (!req.body.idNguoiNhanMoi) {
+        return next(new ApiError(400, "Người nhận mới không được để trống"));
+    }
+    if (!req.body.ngayNhanMoi) {
+        return next(new ApiError(400, "Ngày nhận mới không được để trống"));
+    }
+    try {
+        const assignmentService = new AssignmentService(MySQL.connection);
+        const result = await assignmentService.transfer(req.params.id, req.body);
+        if (!result) {
+            return next(new ApiError(404, "Không tìm thấy phân công để chuyển giao"));
+        }
+        return res.send(result);
+    } catch (error) {
+        console.error(error);
+        return next(
+            new ApiError(500, "Đã xảy ra lỗi khi chuyển giao")
+        );
+    }
+};
+
 //Lấy tất cả
 exports.findAll = async (req, res, next) => {
     let documents = [];

@@ -13,4 +13,7 @@ router.route("/:id")
     .put(assignment.update)
     .delete(assignment.delete);
 
+router.route("/:id/transfer")
+    .put(assignment.transfer);
+
 module.exports = router;

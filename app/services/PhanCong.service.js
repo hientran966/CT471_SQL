@@ -15,6 +15,14 @@ class AssignmentService {
         };
     }
 
+    async extractTransferData(payload) {
+        return {
+            moTaChuyenGiao: payload.moTaChuyenGiao,
+            idNguoiNhanMoi: payload.idNguoiNhanMoi,
+            ngayNhanMoi: payload.ngayNhanMoi,
+        };
+    }
+
     async create(payload) {
         const assignment = await this.extractAssignmentData(payload);
         
@@ -42,6 +50,95 @@ class AssignmentService {
             ]
         );
         return { ...assignment };
+    }
+
+    async transfer(id, payload) {
+        const connection = await this.mysql.getConnection();
+        try {
+            await connection.beginTransaction(); // Bắt đầu Transaction
+
+            const transfer = await this.extractTransferData(payload);
+
+            const [transRows] = await connection.execute("SELECT id FROM LichSuChuyenGiao WHERE id LIKE 'CG%%%%%%' ORDER BY id DESC LIMIT 1");
+            let newIdNumber = 1;
+            if (transRows.length > 0) {
+                const lastId = transRows[0].id;
+                const num = parseInt(lastId.slice(2), 10);
+                if (!isNaN(num)) newIdNumber = num + 1;
+            }
+            const newId = "CG" + newIdNumber.toString().padStart(6, "0");
+            transfer.id = newId;
+
+            // Lấy dữ liệu phân công cũ
+            const [rows] = await connection.execute("SELECT * FROM PhanCong WHERE id = ?", [id]);
+            if (rows.length === 0) {
+                await connection.rollback();
+                connection.release();
+                return null;
+            }
+            const oldAssignment = rows[0];
+
+            // Tạo bản ghi PhanCong mới với người nhận mới, ngày nhận mới
+            const newAssignmentPayload = {
+                moTa: oldAssignment.moTa,
+                idCongViec: oldAssignment.idCongViec,
+                tienDoCaNhan: oldAssignment.tienDoCaNhan,
+                idNguoiNhan: payload.idNguoiNhanMoi,
+                ngayNhan: payload.ngayNhanMoi,
+                ngayHoanTat: null,
+                trangThai: oldAssignment.trangThai,
+            };
+
+            // Tạo id mới cho PhanCong
+            const [rowsPC] = await connection.execute("SELECT id FROM PhanCong WHERE id LIKE 'PC%%%%%%' ORDER BY id DESC LIMIT 1");
+            let newPCIdNumber = 1;
+            if (rowsPC.length > 0) {
+                const lastPCId = rowsPC[0].id;
+                const numPC = parseInt(lastPCId.slice(2), 10);
+                if (!isNaN(numPC)) newPCIdNumber = numPC + 1;
+            }
+            const newPCId = "PC" + newPCIdNumber.toString().padStart(6, "0");
+            newAssignmentPayload.id = newPCId;
+
+            await connection.execute(
+                "INSERT INTO PhanCong (id, idCongViec, tienDoCaNhan, idNguoiNhan, ngayNhan, ngayHoanTat, trangThai, moTa) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                [
+                    newAssignmentPayload.id,
+                    newAssignmentPayload.idCongViec,
+                    newAssignmentPayload.tienDoCaNhan,
+                    newAssignmentPayload.idNguoiNhan,
+                    newAssignmentPayload.ngayNhan,
+                    newAssignmentPayload.ngayHoanTat,
+                    newAssignmentPayload.trangThai,
+                    newAssignmentPayload.moTa,
+                ]
+            );
+
+            // Tạo bản ghi ChuyenGiao với idTruoc (id cũ), idSau (id mới)
+            await connection.execute(
+                "INSERT INTO LichSuChuyenGiao (id, idTruoc, idSau, moTa) VALUES (?, ?, ?, ?)",
+                [transfer.id, id, newAssignmentPayload.id, transfer.moTaChuyenGiao]
+            );
+
+            // Cập nhật trạng thái PhanCong cũ thành "Đã chuyển giao" và ngày hoàn tất thành ngày hiện tại
+            const currentDate = new Date();
+            await connection.execute(
+                "UPDATE PhanCong SET trangThai = ?, ngayHoanTat = ? WHERE id = ?",
+                ["Đã chuyển giao", currentDate, id]
+            );
+
+            await connection.commit(); // Cam kết Transaction
+            connection.release();
+
+            return {
+                oldAssignment,
+                newAssignment: newAssignmentPayload
+            };
+        } catch (err) {
+            await connection.rollback(); // Rollback Transaction
+            connection.release();
+            throw err;
+        }
     }
 
     async find(filter = {}) {
