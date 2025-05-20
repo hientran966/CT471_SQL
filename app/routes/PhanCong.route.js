@@ -14,6 +14,7 @@ router.route("/:id")
     .delete(assignment.delete);
 
 router.route("/:id/transfer")
+    .get(assignment.findTransferHistory)
     .put(assignment.transfer);
 
 module.exports = router;

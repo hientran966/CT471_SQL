@@ -127,7 +127,7 @@ class AssignmentService {
                 ["Đã chuyển giao", currentDate, id]
             );
 
-            await connection.commit(); // Cam kết Transaction
+            await connection.commit(); // Commit Transaction
             connection.release();
 
             return {
@@ -166,6 +166,14 @@ class AssignmentService {
             [id]
         );
         return rows[0] || null;
+    }
+
+    async findTransferHistory(id) {
+        const [rows] = await this.mysql.execute(
+            "SELECT * FROM LichSuChuyenGiao WHERE idTruoc = ? OR idSau = ?",
+            [id, id]
+        );
+        return rows || null;
     }
 
     async update(id, payload) {

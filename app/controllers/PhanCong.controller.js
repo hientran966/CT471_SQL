@@ -31,7 +31,7 @@ exports.transfer = async (req, res, next) => {
         return next(new ApiError(400, "Ngày nhận mới không được để trống"));
     }
     try {
-        const assignmentService = new AssignmentService(MySQL.connection);
+        const assignmentService = new AssignmentService(MySQL.pool);
         const result = await assignmentService.transfer(req.params.id, req.body);
         if (!result) {
             return next(new ApiError(404, "Không tìm thấy phân công để chuyển giao"));
@@ -88,6 +88,26 @@ exports.findOne = async (req, res, next) => {
             new ApiError(
                 500,
                 `Đã xảy ra lỗi khi lấy tham gia với id=${req.params.id}`
+            )
+        );
+    }
+};
+
+//Lấy lịch sử chuyển giao
+exports.findTransferHistory = async (req, res, next) => {
+    try {
+        const assignmentService = new AssignmentService(MySQL.connection);
+        const document = await assignmentService.findTransferHistory(req.params.id);
+        if (!document){
+            return next(new ApiError(404, "Tham gia không tồn tại"));
+        }
+        return res.send(document);
+    } catch (error) {
+        console.error(error);
+        return next(
+            new ApiError(
+                500,
+                `Đã xảy ra lỗi khi lấy lịch sử chuyển giao với id=${req.params.id}`
             )
         );
     }
