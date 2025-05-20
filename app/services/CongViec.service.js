@@ -5,7 +5,6 @@ class TaskService {
 
     async extractTaskData(payload) {
         return {
-            id: payload.id,
             tenCV: payload.tenCV,
             moTa: payload.moTa,
             doUuTien: payload.doUuTien ?? "Thấp",
@@ -23,6 +22,17 @@ class TaskService {
 
     async create(payload) {
         const task = await this.extractTaskData(payload);
+        
+        const [rows] = await this.mysql.execute("SELECT id FROM CongViec WHERE id LIKE 'CV%%%%%%' ORDER BY id DESC LIMIT 1");
+        let newIdNumber = 1;
+        if (rows.length > 0) {
+            const lastId = rows[0].id;
+            const num = parseInt(lastId.slice(2), 10);
+            if (!isNaN(num)) newIdNumber = num + 1;
+        }
+        const newId = "CV" + newIdNumber.toString().padStart(6, "0");
+        task.id = newId;
+
         const [result] = await this.mysql.execute(
             "INSERT INTO CongViec (id, tenCV, moTa, doUuTien, doQuanTrong, ngayBD, ngayKT, tienDo, trangThai, deactive, idNguoiTao, idNhomCV, idDuAn) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [

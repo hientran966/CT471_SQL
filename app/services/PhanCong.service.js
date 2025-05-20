@@ -5,7 +5,6 @@ class AssignmentService {
 
     async extractAssignmentData(payload) {
         return {
-            id: payload.id,
             moTa: payload.moTa,
             idCongViec: payload.idCongViec,
             tienDoCaNhan: payload.tienDoCaNhan,
@@ -18,6 +17,17 @@ class AssignmentService {
 
     async create(payload) {
         const assignment = await this.extractAssignmentData(payload);
+        
+        const [rows] = await this.mysql.execute("SELECT id FROM PhanCong WHERE id LIKE 'PC%%%%%%' ORDER BY id DESC LIMIT 1");
+        let newIdNumber = 1;
+        if (rows.length > 0) {
+            const lastId = rows[0].id;
+            const num = parseInt(lastId.slice(2), 10);
+            if (!isNaN(num)) newIdNumber = num + 1;
+        }
+        const newId = "PC" + newIdNumber.toString().padStart(6, "0");
+        assignment.id = newId;
+
         const [result] = await this.mysql.execute(
             "INSERT INTO PhanCong (id, idCongViec, tienDoCaNhan, idNguoiNhan, ngayNhan, ngayHoanTat, trangThai, moTa) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             [

@@ -7,7 +7,6 @@ class AuthService {
 
     async extractAuthData(payload) {
         const auth = {
-            id: payload.id,
             email: payload.email,
             tenNV: payload.tenNV,
             gioiTinh: payload.gioiTinh ?? "Nam",
@@ -29,9 +28,6 @@ class AuthService {
             throw new Error("Không có dữ liệu đầu vào");
         }
         // Kiểm tra các trường bắt buộc
-        if (!payload.id) {
-            throw new Error("Cần có id");
-        }
         if (!payload.tenNV) {
             throw new Error("Cần có tên nhân viên");
         }
@@ -39,14 +35,24 @@ class AuthService {
             throw new Error("Cần có email và mật khẩu");
         }
         // Kiểm tra tài khoản đã tồn tại
-        const [rows] = await this.mysql.execute(
+        const [email] = await this.mysql.execute(
             "SELECT * FROM TaiKhoan WHERE email = ?",
             [payload.email]
         );
-        if (rows.length > 0) throw new Error("Tài khoản đã tồn tại");
+        if (email.length > 0) throw new Error("Tài khoản đã tồn tại");
+
+        const auth = await this.extractAuthData(payload);
+        const [rows] = await this.mysql.execute("SELECT id FROM TaiKhoan WHERE id LIKE 'AC%%%%%%' ORDER BY id DESC LIMIT 1");
+        let newIdNumber = 1;
+        if (rows.length > 0) {
+            const lastId = rows[0].id;
+            const num = parseInt(lastId.slice(2), 10);
+            if (!isNaN(num)) newIdNumber = num + 1;
+        }
+        const newId = "AC" + newIdNumber.toString().padStart(6, "0");
+        auth.id = newId;
 
         const hashedPassword = await bcrypt.hash(payload.Password, 10);
-        const auth = await this.extractAuthData(payload);
 
         // Thêm tài khoản mới
         const [result] = await this.mysql.execute(

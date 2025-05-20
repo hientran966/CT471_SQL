@@ -5,7 +5,6 @@ class ProjectService {
 
     async extractProjectData(payload) {
         return {
-            id: payload.id,
             tenDA: payload.tenDA,
             ngayBD: payload.ngayBD,
             ngayKT: payload.ngayKT,
@@ -17,6 +16,17 @@ class ProjectService {
 
     async create(payload) {
         const project = await this.extractProjectData(payload);
+
+        const [rows] = await this.mysql.execute("SELECT id FROM DuAn WHERE id LIKE 'DA%%%%%%' ORDER BY id DESC LIMIT 1");
+        let newIdNumber = 1;
+        if (rows.length > 0) {
+            const lastId = rows[0].id;
+            const num = parseInt(lastId.slice(2), 10);
+            if (!isNaN(num)) newIdNumber = num + 1;
+        }
+        const newId = "DA" + newIdNumber.toString().padStart(6, "0");
+        project.id = newId;
+
         const [result] = await this.mysql.execute(
             "INSERT INTO DuAn (id, tenDA, ngayBD, ngayKT, deactive, trangThai, idNguoiTao) VALUES (?, ?, ?, ?, ?, ?, ?)",
             [

@@ -8,7 +8,6 @@ class FileService {
 
     async extractFileData(payload) {
         return {
-            id: payload.id,
             tenFile: payload.tenFile ?? null,
             idNguoiTao: payload.idNguoiTao ?? null,
             idCongViec: payload.idCongViec ?? null,
@@ -18,12 +17,31 @@ class FileService {
 
     async extractVersionData(payload) {
         return {
-            id: payload.id,
-            soPB: payload.soPB ?? null,
             ngayUpload: payload.ngayUpload ?? null,
             deactive: payload.deactive ?? null,
             idFile: payload.idFile ?? null,
         };
+    }
+
+    async generateUniqueId() {
+        const [rows] = await this.mysql.execute("SELECT id FROM File WHERE id LIKE 'FI%%%%%%%' ORDER BY id DESC LIMIT 1");
+        let newIdNumber = 1;
+        if (rows.length > 0) {
+            const lastId = rows[0].id;
+            const num = parseInt(lastId.slice(2), 10);
+            if (!isNaN(num)) newIdNumber = num + 1;
+        }
+        return "FI" + newIdNumber.toString().padStart(6, "0");
+    }
+    async generateUniqueVersionId() {
+        const [rows] = await this.mysql.execute("SELECT id FROM PhienBan WHERE id LIKE 'PB%%%%%%%' ORDER BY id DESC LIMIT 1");
+        let newIdNumber = 1;
+        if (rows.length > 0) {
+            const lastId = rows[0].id;
+            const num = parseInt(lastId.slice(2), 10);
+            if (!isNaN(num)) newIdNumber = num + 1;
+        }
+        return "PB" + newIdNumber.toString().padStart(6, "0");
     }
 
     // Lưu file từ payload chứa base64 với tên duy nhất
@@ -44,7 +62,7 @@ class FileService {
 
     async create(payload) {
         // Kiểm tra payload hợp lệ
-        if (!payload || !payload.id || !payload.tenFile || !payload.idNguoiTao) {
+        if (!payload ||!payload.tenFile || !payload.idNguoiTao) {
             throw new Error("Thiếu thông tin bắt buộc khi tạo file.");
         }
 
@@ -57,6 +75,15 @@ class FileService {
         const file = await this.extractFileData(payload);
         const version = await this.extractVersionData(payload);
         version.duongDan = duongDan || null;
+          
+        //Tạo id cho file và phiên bản
+        file.id = await this.generateUniqueId();
+        version.id = await this.generateUniqueVersionId();
+
+        // Lấy số phiên bản hiện tại
+        const [verCountRows] = await this.mysql.execute("SELECT COUNT(*) as count FROM PhienBan WHERE idFile = ? AND deactive IS NULL", [file.id]);
+        const currentVersion = verCountRows[0].count + 1;
+        version.soPB = currentVersion;
 
         // Tạo file
         const [fileResult] = await this.mysql.execute(
@@ -152,8 +179,8 @@ class FileService {
 
     async addVersion(id, payload) {
         // Kiểm tra id và payload hợp lệ
-        if (!id || !payload) {
-            throw new Error("Thiếu id hoặc payload khi thêm phiên bản file.");
+        if (!payload) {
+            throw new Error("Thiếu payload khi thêm phiên bản file.");
         }
         // Nếu có file base64 thì lưu file vật lý trước
         let duongDan = null;
@@ -161,6 +188,11 @@ class FileService {
             duongDan = await this.saveFileFromPayload(payload);
         }
         const version = await this.extractVersionData(payload);
+        version.id = await this.generateUniqueVersionId();
+        // Lấy số phiên bản hiện tại
+        const [verCountRows] = await this.mysql.execute("SELECT COUNT(*) as count FROM PhienBan WHERE idFile = ? AND deactive IS NULL", [id]);
+        const currentVersion = verCountRows[0].count + 1;
+        version.soPB = currentVersion;
         if (duongDan) version.duongDan = duongDan;
         const [result] = await this.mysql.execute(
             "INSERT INTO PhienBan (id, soPB, duongDan, ngayUpload, deactive, idFile) VALUES (?, ?, ?, ?, ?, ?)",

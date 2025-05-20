@@ -5,7 +5,6 @@ class TaskGroupService {
 
     async extractTaskGroupData(payload) {
         return {
-            id: payload.id,
             tenNhom: payload.tenNhom,
             deactive: payload.deactive ?? null,
             idDuAn: payload.idDuAn,
@@ -15,6 +14,17 @@ class TaskGroupService {
 
     async create(payload) {
         const taskGroup = await this.extractTaskGroupData(payload);
+
+        const [rows] = await this.mysql.execute("SELECT id FROM NhomCongViec WHERE id LIKE 'NH%%%%%%' ORDER BY id DESC LIMIT 1");
+        let newIdNumber = 1;
+        if (rows.length > 0) {
+            const lastId = rows[0].id;
+            const num = parseInt(lastId.slice(2), 10);
+            if (!isNaN(num)) newIdNumber = num + 1;
+        }
+        const newId = "NH" + newIdNumber.toString().padStart(6, "0");
+        taskGroup.id = newId;
+
         const [result] = await this.mysql.execute(
             "INSERT INTO NhomCongViec (id, tenNhom, deactive, idDuAn, idNguoiTao) VALUES (?, ?, ?, ?, ?)",
             [

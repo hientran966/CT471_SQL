@@ -5,7 +5,6 @@ class DepartmentService {
 
     async extractDepartmentData(payload) {
         return {
-            id: payload.id,
             tenPhong: payload.tenPhong,
             phanQuyen: payload.phanQuyen ?? "Thấp",
             deactive: payload.deactive ?? null,
@@ -14,6 +13,16 @@ class DepartmentService {
 
     async create(payload) {
         const department = await this.extractDepartmentData(payload);
+        const [rows] = await this.mysql.execute("SELECT id FROM PhongBan WHERE id LIKE 'PH%%%%%%' ORDER BY id DESC LIMIT 1");
+        let newIdNumber = 1;
+        if (rows.length > 0) {
+            const lastId = rows[0].id;
+            const num = parseInt(lastId.slice(2), 10);
+            if (!isNaN(num)) newIdNumber = num + 1;
+        }
+        const newId = "PH" + newIdNumber.toString().padStart(6, "0");
+        department.id = newId;
+
         const [result] = await this.mysql.execute(
             "INSERT INTO PhongBan (id, tenPhong, phanQuyen, deactive) VALUES (?, ?, ?, ?)",
             [
