@@ -42,36 +42,46 @@ class AuthService {
         if (email.length > 0) throw new Error("Tài khoản đã tồn tại");
 
         const auth = await this.extractAuthData(payload);
-        const [rows] = await this.mysql.execute("SELECT id FROM TaiKhoan WHERE id LIKE 'AC%%%%%%' ORDER BY id DESC LIMIT 1");
-        let newIdNumber = 1;
-        if (rows.length > 0) {
-            const lastId = rows[0].id;
-            const num = parseInt(lastId.slice(2), 10);
-            if (!isNaN(num)) newIdNumber = num + 1;
+        const connection = await this.mysql.getConnection();
+        try {
+            await connection.beginTransaction(); // Bắt đầu Transaction
+            const [rows] = await connection.execute("SELECT id FROM TaiKhoan WHERE id LIKE 'AC%%%%%%' ORDER BY id DESC LIMIT 1");
+            let newIdNumber = 1;
+            if (rows.length > 0) {
+                const lastId = rows[0].id;
+                const num = parseInt(lastId.slice(2), 10);
+                if (!isNaN(num)) newIdNumber = num + 1;
+            }
+            const newId = "AC" + newIdNumber.toString().padStart(6, "0");
+            auth.id = newId;
+
+            const hashedPassword = await bcrypt.hash(payload.Password, 10);
+
+            // Thêm tài khoản mới
+            await connection.execute(
+                `INSERT INTO TaiKhoan (id, email, tenNV, gioiTinh, SDT, diaChi, vaiTro, Password, deactive, idPhong)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    auth.id,
+                    auth.email,
+                    auth.tenNV,
+                    auth.gioiTinh,
+                    auth.SDT,
+                    auth.diaChi,
+                    auth.vaiTro,
+                    hashedPassword,
+                    auth.deactive,
+                    auth.idPhong,
+                ]
+            );
+                await connection.commit(); // Commit Transaction
+            return { id: auth.id, email: auth.email, vaiTro: auth.vaiTro };
+        } catch (error) {
+            await connection.rollback(); // Rollback Transaction
+            throw error; // Ném lại lỗi để xử lý ở nơi khác
+        } finally {
+            connection.release(); // Giải phóng kết nối
         }
-        const newId = "AC" + newIdNumber.toString().padStart(6, "0");
-        auth.id = newId;
-
-        const hashedPassword = await bcrypt.hash(payload.Password, 10);
-
-        // Thêm tài khoản mới
-        const [result] = await this.mysql.execute(
-            `INSERT INTO TaiKhoan (id, email, tenNV, gioiTinh, SDT, diaChi, vaiTro, Password, deactive, idPhong)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                auth.id,
-                auth.email,
-                auth.tenNV,
-                auth.gioiTinh,
-                auth.SDT,
-                auth.diaChi,
-                auth.vaiTro,
-                hashedPassword,
-                auth.deactive,
-                auth.idPhong,
-            ]
-        );
-        return { id: auth.id, email: auth.email, vaiTro: auth.vaiTro };
     }
 
     async find(filter = {}) {

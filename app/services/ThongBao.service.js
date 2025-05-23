@@ -20,34 +20,43 @@ class NoficationService {
 
     async create(payload) {
         const nofication = await this.extractNoficationData(payload);
-                
-        const [rows] = await this.mysql.execute("SELECT id FROM ThongBao WHERE id LIKE 'TB%%%%%%' ORDER BY id DESC LIMIT 1");
-        let newIdNumber = 1;
-        if (rows.length > 0) {
-            const lastId = rows[0].id;
-            const num = parseInt(lastId.slice(2), 10);
-            if (!isNaN(num)) newIdNumber = num + 1;
-        }
-        const newId = "TB" + newIdNumber.toString().padStart(6, "0");
-        nofication.id = newId;
+        const connection = await this.mysql.getConnection();
+        try {
+            await connection.beginTransaction();
+            const [rows] = await connection.execute("SELECT id FROM ThongBao WHERE id LIKE 'TB%%%%%%' ORDER BY id DESC LIMIT 1");
+            let newIdNumber = 1;
+            if (rows.length > 0) {
+                const lastId = rows[0].id;
+                const num = parseInt(lastId.slice(2), 10);
+                if (!isNaN(num)) newIdNumber = num + 1;
+            }
+            const newId = "TB" + newIdNumber.toString().padStart(6, "0");
+            nofication.id = newId;
 
-        const [result] = await this.mysql.execute(
-            "INSERT INTO ThongBao (id, tieuDe, noiDung, idNguoiDang, ngayDang, deactive, idPhanCong, idCongViec, idNhomCV, idDuAn, idPhanHoi) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            [
-                nofication.id,
-                nofication.tieuDe,
-                nofication.noiDung,
-                nofication.idNguoiDang,
-                nofication.ngayDang,
-                nofication.deactive,
-                nofication.idPhanCong,
-                nofication.idCongViec,
-                nofication.idNhomCV,
-                nofication.idDuAn,
-                nofication.idPhanHoi,
-            ]
-        );
-        return { ...nofication };
+            await connection.execute(
+                "INSERT INTO ThongBao (id, tieuDe, noiDung, idNguoiDang, ngayDang, deactive, idPhanCong, idCongViec, idNhomCV, idDuAn, idPhanHoi) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                [
+                    nofication.id,
+                    nofication.tieuDe,
+                    nofication.noiDung,
+                    nofication.idNguoiDang,
+                    nofication.ngayDang,
+                    nofication.deactive,
+                    nofication.idPhanCong,
+                    nofication.idCongViec,
+                    nofication.idNhomCV,
+                    nofication.idDuAn,
+                    nofication.idPhanHoi,
+                ]
+            );
+            await connection.commit();
+            return { ...nofication };
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
     }
 
     async find(filter = {}) {

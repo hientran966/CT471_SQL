@@ -33,6 +33,7 @@ class FileService {
         }
         return "FI" + newIdNumber.toString().padStart(6, "0");
     }
+
     async generateUniqueVersionId() {
         const [rows] = await this.mysql.execute("SELECT id FROM PhienBan WHERE id LIKE 'PB%%%%%%%' ORDER BY id DESC LIMIT 1");
         let newIdNumber = 1;
@@ -66,56 +67,60 @@ class FileService {
             throw new Error("Thiếu thông tin bắt buộc khi tạo file.");
         }
 
-        // Nếu có file base64 thì lưu file vật lý trước
-        let duongDan = null;
-        if (payload.fileDataBase64 && payload.tenFile) {
-            duongDan = await this.saveFileFromPayload(payload);
-        }
-
         const file = await this.extractFileData(payload);
         const version = await this.extractVersionData(payload);
-        version.duongDan = duongDan || null;
-          
-        //Tạo id cho file và phiên bản
-        file.id = await this.generateUniqueId();
-        version.id = await this.generateUniqueVersionId();
-
-        // Lấy số phiên bản hiện tại
-        const [verCountRows] = await this.mysql.execute("SELECT COUNT(*) as count FROM PhienBan WHERE idFile = ? AND deactive IS NULL", [file.id]);
-        const currentVersion = verCountRows[0].count + 1;
-        version.soPB = currentVersion;
-
-        // Tạo file
-        const [fileResult] = await this.mysql.execute(
-            "INSERT INTO File (id, tenFile, idNguoiTao, idCongViec) VALUES (?, ?, ?, ?)",
-            [
-                file.id,
-                file.tenFile,
-                file.idNguoiTao,
-                file.idCongViec,
-            ]
-        );
-
-        // Tạo phiên bản đầu tiên cho file
-        const [verResult] = await this.mysql.execute(
-            "INSERT INTO PhienBan (id, soPB, duongDan, ngayUpload, deactive, idFile) VALUES (?, ?, ?, ?, ?, ?)",
-            [
-                version.id,
-                version.soPB,
-                version.duongDan,
-                version.ngayUpload,
-                version.deactive,
-                file.id,
-            ]
-        );
-
-        return {
-            ...file,
-            version: {
-                ...version,
-                idFile: file.id
+        
+        const connection = await this.mysql.getConnection();
+        try {
+            await connection.beginTransaction(); // Bắt đầu Transaction
+            
+            // Lưu file vật lý trước
+            let duongDan = null;
+            if (payload.fileDataBase64 && payload.tenFile) {
+                duongDan = await this.saveFileFromPayload(payload);
             }
-        };
+            version.duongDan = duongDan || null;
+            
+            //Tạo id cho file và phiên bản
+            file.id = await this.generateUniqueId();
+            version.id = await this.generateUniqueVersionId();
+
+            // Lấy số phiên bản hiện tại
+            const [verCountRows] = await connection.execute("SELECT COUNT(*) as count FROM PhienBan WHERE idFile = ? AND deactive IS NULL", [file.id]);
+            const currentVersion = verCountRows[0].count + 1;
+            version.soPB = currentVersion;
+
+            // Tạo file
+            await connection.execute(
+                "INSERT INTO File (id, tenFile, idNguoiTao, idCongViec) VALUES (?, ?, ?, ?)",
+                [
+                    file.id,
+                    file.tenFile,
+                    file.idNguoiTao,
+                    file.idCongViec,
+                ]
+            );
+
+            // Tạo phiên bản đầu tiên cho file
+            await connection.execute(
+                "INSERT INTO PhienBan (id, soPB, duongDan, ngayUpload, deactive, idFile) VALUES (?, ?, ?, ?, ?, ?)",
+                [
+                    version.id,
+                    version.soPB,
+                    version.duongDan,
+                    version.ngayUpload,
+                    version.deactive,
+                    file.id,
+                ]
+            );
+            await connection.commit(); // Commit Transaction
+            return { ...file, duongDan: version.duongDan, idFile: file.id, idVersion: version.id };
+        } catch (error) {
+            await connection.rollback(); // Rollback Transaction nếu có lỗi
+            throw error;
+        } finally {
+            connection.release(); // Giải phóng kết nối
+        }
     }
 
     async find(filter = {}) {

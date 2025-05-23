@@ -8,7 +8,7 @@ exports.create = async (req, res, next) => {
         return next(new ApiError(400, "Tên file không được để trống"));
     }
     try {
-        const fileService = new FileService(MySQL.connection);
+        const fileService = new FileService(MySQL.pool);
         const document = await fileService.create(req.body);
         if (!document) {
             return next(new ApiError(400, "Không thể tạo file"));

@@ -14,28 +14,37 @@ class TaskGroupService {
 
     async create(payload) {
         const taskGroup = await this.extractTaskGroupData(payload);
+        const connection = await this.mysql.getConnection();
+        try {
+            await connection.beginTransaction(); // Bắt đầu Transaction
+            const [rows] = await connection.execute("SELECT id FROM NhomCongViec WHERE id LIKE 'NH%%%%%%' ORDER BY id DESC LIMIT 1");
+            let newIdNumber = 1;
+            if (rows.length > 0) {
+                const lastId = rows[0].id;
+                const num = parseInt(lastId.slice(2), 10);
+                if (!isNaN(num)) newIdNumber = num + 1;
+            }
+            const newId = "NH" + newIdNumber.toString().padStart(6, "0");
+            taskGroup.id = newId;
 
-        const [rows] = await this.mysql.execute("SELECT id FROM NhomCongViec WHERE id LIKE 'NH%%%%%%' ORDER BY id DESC LIMIT 1");
-        let newIdNumber = 1;
-        if (rows.length > 0) {
-            const lastId = rows[0].id;
-            const num = parseInt(lastId.slice(2), 10);
-            if (!isNaN(num)) newIdNumber = num + 1;
+            await connection.execute(
+                "INSERT INTO NhomCongViec (id, tenNhom, deactive, idDuAn, idNguoiTao) VALUES (?, ?, ?, ?, ?)",
+                [
+                    taskGroup.id,
+                    taskGroup.tenNhom,
+                    taskGroup.deactive,
+                    taskGroup.idDuAn,
+                    taskGroup.idNguoiTao,
+                ]
+            );
+            await connection.commit(); // Commit Transaction
+            return { ...taskGroup };
+        } catch (error) {
+            await connection.rollback(); // Rollback Transaction
+            throw error; // Ném lại lỗi để xử lý ở nơi khác
+        } finally {
+            connection.release(); // Giải phóng kết nối
         }
-        const newId = "NH" + newIdNumber.toString().padStart(6, "0");
-        taskGroup.id = newId;
-
-        const [result] = await this.mysql.execute(
-            "INSERT INTO NhomCongViec (id, tenNhom, deactive, idDuAn, idNguoiTao) VALUES (?, ?, ?, ?, ?)",
-            [
-                taskGroup.id,
-                taskGroup.tenNhom,
-                taskGroup.deactive,
-                taskGroup.idDuAn,
-                taskGroup.idNguoiTao,
-            ]
-        );
-        return { ...taskGroup };
     }
 
     async find(filter = {}) {
@@ -60,6 +69,7 @@ class TaskGroupService {
         );
         return rows[0] || null;
     }
+
     async update(id, payload) {
         const taskGroup = await this.extractTaskGroupData(payload);
         let sql = "UPDATE NhomCongViec SET ";

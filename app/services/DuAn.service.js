@@ -16,30 +16,40 @@ class ProjectService {
 
     async create(payload) {
         const project = await this.extractProjectData(payload);
+        const connection = await this.mysql.getConnection();
+        try {
+            await connection.beginTransaction(); // Bắt đầu Transaction
+            const [rows] = await connection.execute("SELECT id FROM DuAn WHERE id LIKE 'DA%%%%%%' ORDER BY id DESC LIMIT 1");
+            let newIdNumber = 1;
+            if (rows.length > 0) {
+                const lastId = rows[0].id;
+                const num = parseInt(lastId.slice(2), 10);
+                if (!isNaN(num)) newIdNumber = num + 1;
+            }
+            const newId = "DA" + newIdNumber.toString().padStart(6, "0");
+            project.id = newId;
 
-        const [rows] = await this.mysql.execute("SELECT id FROM DuAn WHERE id LIKE 'DA%%%%%%' ORDER BY id DESC LIMIT 1");
-        let newIdNumber = 1;
-        if (rows.length > 0) {
-            const lastId = rows[0].id;
-            const num = parseInt(lastId.slice(2), 10);
-            if (!isNaN(num)) newIdNumber = num + 1;
+            await connection.execute(
+                "INSERT INTO DuAn (id, tenDA, ngayBD, ngayKT, deactive, trangThai, idNguoiTao) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                [
+                    project.id,
+                    project.tenDA,
+                    project.ngayBD,
+                    project.ngayKT,
+                    project.deactive,
+                    project.trangThai,
+                    project.idNguoiTao,
+                ]
+            );
+            await connection.commit(); // Commit Transaction
+            return { ...project };
         }
-        const newId = "DA" + newIdNumber.toString().padStart(6, "0");
-        project.id = newId;
-
-        const [result] = await this.mysql.execute(
-            "INSERT INTO DuAn (id, tenDA, ngayBD, ngayKT, deactive, trangThai, idNguoiTao) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [
-                project.id,
-                project.tenDA,
-                project.ngayBD,
-                project.ngayKT,
-                project.deactive,
-                project.trangThai,
-                project.idNguoiTao,
-            ]
-        );
-        return { ...project };
+        catch (error) {
+            await connection.rollback(); // Rollback Transaction
+            throw error; // Ném lại lỗi để xử lý ở nơi khác
+        } finally {
+            connection.release(); // Giải phóng kết nối
+        }
     }
 
     async find(filter = {}) {

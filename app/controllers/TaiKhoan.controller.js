@@ -9,7 +9,7 @@ exports.create = async (req, res, next) => {
     }
 
     try {
-        const authService = new AuthService(MySQL.connection);
+        const authService = new AuthService(MySQL.pool);
         const document = await authService.create(req.body);
         return res.send(document);
     } catch (error) {

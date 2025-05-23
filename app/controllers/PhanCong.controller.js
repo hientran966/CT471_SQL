@@ -11,7 +11,7 @@ exports.create = async (req, res, next) => {
         return next(new ApiError(400, "Công việc không được để trống"));
     }
     try {
-        const assignmentService = new AssignmentService(MySQL.connection);
+        const assignmentService = new AssignmentService(MySQL.pool);
         const document = await assignmentService.create(req.body);
         return res.send(document);
     } catch (error) {

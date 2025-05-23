@@ -9,7 +9,7 @@ exports.create = async (req, res, next) => {
     }
 
     try {
-        const taskGroupService = new TaskGroupService(MySQL.connection);
+        const taskGroupService = new TaskGroupService(MySQL.pool);
         const document = await taskGroupService.create(req.body);
         return res.send(document);
     } catch (error) {

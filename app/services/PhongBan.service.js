@@ -13,27 +13,38 @@ class DepartmentService {
 
     async create(payload) {
         const department = await this.extractDepartmentData(payload);
-        const [rows] = await this.mysql.execute("SELECT id FROM PhongBan WHERE id LIKE 'PH%%%%%%' ORDER BY id DESC LIMIT 1");
-        let newIdNumber = 1;
-        if (rows.length > 0) {
-            const lastId = rows[0].id;
-            const num = parseInt(lastId.slice(2), 10);
-            if (!isNaN(num)) newIdNumber = num + 1;
-        }
-        const newId = "PH" + newIdNumber.toString().padStart(6, "0");
-        department.id = newId;
+        const connection = await this.mysql.getConnection();
+        try {
+            await connection.beginTransaction(); // Bắt đầu Transaction
+            const [rows] = await connection.execute("SELECT id FROM PhongBan WHERE id LIKE 'PH%%%%%%' ORDER BY id DESC LIMIT 1");
+            let newIdNumber = 1;
+            if (rows.length > 0) {
+                const lastId = rows[0].id;
+                const num = parseInt(lastId.slice(2), 10);
+                if (!isNaN(num)) newIdNumber = num + 1;
+            }
+            const newId = "PH" + newIdNumber.toString().padStart(6, "0");
+            department.id = newId;
 
-        const [result] = await this.mysql.execute(
-            "INSERT INTO PhongBan (id, tenPhong, phanQuyen, deactive) VALUES (?, ?, ?, ?)",
-            [
-                department.id,
-                department.tenPhong,
-                department.phanQuyen,
-                department.deactive,
-            ]
-        );
-        return { id: department.id, tenPhong: department.tenPhong };
+            const [result] = await connection.execute(
+                "INSERT INTO PhongBan (id, tenPhong, phanQuyen, deactive) VALUES (?, ?, ?, ?)",
+                [
+                    department.id,
+                    department.tenPhong,
+                    department.phanQuyen,
+                    department.deactive,
+                ]
+            );
+            await connection.commit(); // Commit Transaction
+            return { id: department.id, ...department };
+        } catch (error) {
+            await connection.rollback(); // Rollback Transaction
+            throw error; // Ném lại lỗi để xử lý ở nơi khác
+        } finally {
+            connection.release(); // Giải phóng kết nối
+        }
     }
+
     async find(filter = {}) {
         let sql = "SELECT * FROM PhongBan WHERE deactive IS NULL";
         let params = [];

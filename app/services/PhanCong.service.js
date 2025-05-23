@@ -25,31 +25,40 @@ class AssignmentService {
 
     async create(payload) {
         const assignment = await this.extractAssignmentData(payload);
-        
-        const [rows] = await this.mysql.execute("SELECT id FROM PhanCong WHERE id LIKE 'PC%%%%%%' ORDER BY id DESC LIMIT 1");
-        let newIdNumber = 1;
-        if (rows.length > 0) {
-            const lastId = rows[0].id;
-            const num = parseInt(lastId.slice(2), 10);
-            if (!isNaN(num)) newIdNumber = num + 1;
-        }
-        const newId = "PC" + newIdNumber.toString().padStart(6, "0");
-        assignment.id = newId;
+        const connection = await this.mysql.getConnection();
+        try {
+            await connection.beginTransaction(); // Bắt đầu Transaction
+            const [rows] = await connection.execute("SELECT id FROM PhanCong WHERE id LIKE 'PC%%%%%%' ORDER BY id DESC LIMIT 1");
+            let newIdNumber = 1;
+            if (rows.length > 0) {
+                const lastId = rows[0].id;
+                const num = parseInt(lastId.slice(2), 10);
+                if (!isNaN(num)) newIdNumber = num + 1;
+            }
+            const newId = "PC" + newIdNumber.toString().padStart(6, "0");
+            assignment.id = newId;
 
-        const [result] = await this.mysql.execute(
-            "INSERT INTO PhanCong (id, idCongViec, tienDoCaNhan, idNguoiNhan, ngayNhan, ngayHoanTat, trangThai, moTa) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            [
-                assignment.id,
-                assignment.idCongViec,
-                assignment.tienDoCaNhan,
-                assignment.idNguoiNhan,
-                assignment.ngayNhan,
-                assignment.ngayHoanTat,
-                assignment.trangThai,
-                assignment.moTa,
-            ]
-        );
-        return { ...assignment };
+            await connection.execute(
+                "INSERT INTO PhanCong (id, idCongViec, tienDoCaNhan, idNguoiNhan, ngayNhan, ngayHoanTat, trangThai, moTa) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                [
+                    assignment.id,
+                    assignment.idCongViec,
+                    assignment.tienDoCaNhan,
+                    assignment.idNguoiNhan,
+                    assignment.ngayNhan,
+                    assignment.ngayHoanTat,
+                    assignment.trangThai,
+                    assignment.moTa,
+                ]
+            );
+            await connection.commit(); // Commit Transaction
+            return { ...assignment };
+        } catch (error) {
+            await connection.rollback(); // Rollback Transaction
+            throw error; // Ném lại lỗi để xử lý ở nơi khác
+        } finally {
+            connection.release(); // Giải phóng kết nối
+        }
     }
 
     async transfer(id, payload) {

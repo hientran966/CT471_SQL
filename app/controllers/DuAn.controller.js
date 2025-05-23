@@ -9,7 +9,7 @@ exports.create = async (req, res, next) => {
     }
 
     try {
-        const projectService = new ProjectService(MySQL.connection);
+        const projectService = new ProjectService(MySQL.pool);
         const document = await projectService.create(req.body);
         return res.send(document);
     } catch (error) {
