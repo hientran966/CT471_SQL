@@ -9,6 +9,7 @@ const assignmentRouter = require("./app/routes/PhanCong.route");
 const notificationRouter = require("./app/routes/ThongBao.route");
 const fileRouter = require("./app/routes/File.route");
 const taskGroupRouter = require("./app/routes/NhomCongViec.route");
+const calendarRouter = require("./app/routes/LichNghi.route")
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use("/api/phancong", assignmentRouter);
 app.use("/api/thongbao", notificationRouter);
 app.use("/api/file", fileRouter);
 app.use("/api/nhomviec", taskGroupRouter);
+app.use("/api/lich", calendarRouter)
 
 //handle 404
 app.use((req, res, next) => {
