@@ -168,7 +168,7 @@ class AuthService {
         if (!auth || !(await this.comparePassword(Password, auth.password))) {
             throw new Error("Invalid credentials");
         }
-        return { id: auth.id, email: auth.email, vaiTro: auth.vaiTro };
+        return { ...auth };
     }
 }
 
