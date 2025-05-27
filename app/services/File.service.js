@@ -17,7 +17,7 @@ class FileService {
 
     async extractVersionData(payload) {
         return {
-            ngayUpload: payload.ngayUpload ?? null,
+            ngayUpload: payload.ngayUpload ?? new Date(),
             deactive: payload.deactive ?? null,
             idFile: payload.idFile ?? null,
         };

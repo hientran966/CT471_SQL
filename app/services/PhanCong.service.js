@@ -177,6 +177,14 @@ class AssignmentService {
         return rows[0] || null;
     }
 
+    async findByTask(taskId) {
+        const [rows] = await this.mysql.execute(
+            "SELECT * FROM PhanCong WHERE idCongViec = ? AND deactive IS NULL",
+            [taskId]
+        );
+        return rows || null;
+    }
+
     async findTransferHistory(id) {
         const [rows] = await this.mysql.execute(
             "SELECT * FROM LichSuChuyenGiao WHERE idTruoc = ? OR idSau = ?",

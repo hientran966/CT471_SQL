@@ -170,6 +170,24 @@ class AuthService {
         }
         return { ...auth };
     }
+
+    async getAvatar(id) {
+        const [userRows] = await this.mysql.execute(
+            "SELECT avatar FROM TaiKhoan WHERE id = ?",
+            [id]
+        );
+        if (!userRows.length || !userRows[0].avatar) return null;
+
+        const idFile = userRows[0].avatar;
+
+        const [fileRows] = await this.mysql.execute(
+            "SELECT duongDan FROM PhienBan WHERE idFile = ? ORDER BY ngayUpload DESC LIMIT 1",
+            [idFile]
+        );
+        if (!fileRows.length) return null;
+
+        return fileRows[0].duongDan;
+    }
 }
 
 module.exports = AuthService;

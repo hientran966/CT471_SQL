@@ -1,5 +1,7 @@
 const ApiError = require("../api-error");
 const MySQL = require("../utils/mysql.util");
+const path = require("path");
+const fs = require("fs");
 const AuthService = require("../services/TaiKhoan.service");
 
 //Tạo tài khoản
@@ -141,5 +143,28 @@ exports.login = async (req, res, next) => {
     } catch (error) {
         console.error("Login error:", error);
         next(new ApiError(401, "Login failed"));
+    }
+};
+
+//Lấy avatar
+exports.getAvatar = async (req, res, next) => {
+    try {
+        const authService = new AuthService(MySQL.connection);
+        const duongDan = await authService.getAvatar(req.params.id);
+        if (!duongDan) {
+            return next(new ApiError(404, "Avatar not found"));
+        }
+        const absolutePath = path.isAbsolute(duongDan)
+            ? duongDan
+            : path.join(__dirname, "..", "..", duongDan);
+        fs.access(absolutePath, fs.constants.F_OK, (err) => {
+            if (err) {
+                return next(new ApiError(404, "Avatar file not found"));
+            }
+            res.sendFile(absolutePath);
+        });
+    } catch (error) {
+        console.error("Get avatar error:", error);
+        next(new ApiError(500, "An error occurred while retrieving the avatar"));
     }
 };

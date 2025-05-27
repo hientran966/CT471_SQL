@@ -183,3 +183,20 @@ exports.deleteAll = async (req, res, next) => {
         );
     }
 };
+
+//Lấy tham gia theo công việc
+exports.findByTask = async (req, res, next) => {
+    try {
+        const assignmentService = new AssignmentService(MySQL.connection);
+        const documents = await assignmentService.findByTask(req.params.task);
+        if (!documents || documents.length === 0) {
+            return next(new ApiError(404, "Không tìm thấy tham gia cho công việc này"));
+        }
+        return res.send(documents);
+    } catch (error) {
+        console.error(error);
+        return next(
+            new ApiError(500, `Đã xảy ra lỗi khi lấy tham gia cho công việc với id=${req.params.task}`)
+        );
+    }
+};

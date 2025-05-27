@@ -11,6 +11,9 @@ router.route("/")
 router.route("/login")
     .post(auth.login);
 
+router.route("/avatar/:id")
+    .get(auth.getAvatar);
+
 router.route("/:id")
     .get(auth.findOne)
     .put(auth.update)
