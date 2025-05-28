@@ -13,4 +13,7 @@ router.route("/:id")
     .put(task.update)
     .delete(task.delete);
 
+router.route("/project/:id")
+    .get(task.findByProject);
+
 module.exports = router;

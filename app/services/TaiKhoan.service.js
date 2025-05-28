@@ -14,6 +14,7 @@ class AuthService {
             diaChi: payload.diaChi,
             vaiTro: payload.vaiTro ?? "Nhân Viên",
             idPhong: payload.idPhong ?? null,
+            avatar: payload.avatar ?? "FI000001",
             deactive: payload.deactive ?? null,
         };
         Object.keys(auth).forEach((key) => {
@@ -59,8 +60,8 @@ class AuthService {
 
             // Thêm tài khoản mới
             await connection.execute(
-                `INSERT INTO TaiKhoan (id, email, tenNV, gioiTinh, SDT, diaChi, vaiTro, Password, deactive, idPhong)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                `INSERT INTO TaiKhoan (id, email, tenNV, gioiTinh, SDT, diaChi, vaiTro, Password, deactive, avatar, idPhong)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     auth.id,
                     auth.email,
@@ -71,6 +72,7 @@ class AuthService {
                     auth.vaiTro,
                     hashedPassword,
                     auth.deactive,
+                    auth.avatar,
                     auth.idPhong,
                 ]
             );
