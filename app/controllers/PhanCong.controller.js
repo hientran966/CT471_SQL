@@ -113,6 +113,18 @@ exports.findTransferHistory = async (req, res, next) => {
     }
 };
 
+//Lấy chuỗi chuyển giao
+exports.getFullTransferChain = async (req, res, next) => {
+    try {
+        const assignmentService = new AssignmentService(MySQL.connection);
+        const chain = await assignmentService.getFullTransferChain(req.params.id);
+        return res.send(chain);
+    } catch (error) {
+        console.error(error);
+        return next(new ApiError(500, "Lỗi khi lấy chuỗi chuyển giao"));
+    }
+};
+
 //Cập nhật
 exports.update = async (req, res, next) => {
     try {

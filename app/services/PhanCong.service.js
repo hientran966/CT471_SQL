@@ -193,6 +193,22 @@ class AssignmentService {
         return rows || null;
     }
 
+    async getFullTransferChain(idSau) {
+        const chain = [];
+        let currentId = idSau;
+        while (true) {
+            const [rows] = await this.mysql.execute(
+                "SELECT * FROM LichSuChuyenGiao WHERE idSau = ?",
+                [currentId]
+            );
+            if (rows.length === 0) break;
+            const transfer = rows[0];
+            chain.unshift(transfer); // Thêm vào đầu mảng để giữ thứ tự từ gốc đến hiện tại
+            currentId = transfer.idTruoc;
+        }
+        return chain;
+    }
+
     async update(id, payload) {
         const assignment = await this.extractAssignmentData(payload);
         let sql = "UPDATE PhanCong SET ";
