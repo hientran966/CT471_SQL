@@ -57,11 +57,12 @@ class AuthService {
             auth.id = newId;
 
             const hashedPassword = await bcrypt.hash(payload.Password, 10);
+            const updateAt = new Date;
 
             // Thêm tài khoản mới
             await connection.execute(
-                `INSERT INTO TaiKhoan (id, email, tenNV, gioiTinh, SDT, diaChi, vaiTro, Password, deactive, avatar, idPhong)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                `INSERT INTO TaiKhoan (id, email, tenNV, gioiTinh, SDT, diaChi, vaiTro, Password, deactive, avatar, idPhong, updateAt)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     auth.id,
                     auth.email,
@@ -74,6 +75,7 @@ class AuthService {
                     auth.deactive,
                     auth.avatar,
                     auth.idPhong,
+                    updateAt
                 ]
             );
                 await connection.commit(); // Commit Transaction
@@ -127,6 +129,8 @@ class AuthService {
         if (payload.Password) {
             fields.push("Password = ?");
             params.push(await bcrypt.hash(payload.Password, 10));
+            fields.push("updateAt = ?");
+            params.push(new Date());
         }
         sql += fields.join(", ") + " WHERE id = ?";
         params.push(id);

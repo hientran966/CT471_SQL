@@ -62,11 +62,6 @@ class FileService {
     }
 
     async create(payload) {
-        // Kiểm tra payload hợp lệ
-        if (!payload ||!payload.tenFile || !payload.idNguoiTao) {
-            throw new Error("Thiếu thông tin bắt buộc khi tạo file.");
-        }
-
         const file = await this.extractFileData(payload);
         const version = await this.extractVersionData(payload);
         

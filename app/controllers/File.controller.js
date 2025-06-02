@@ -24,11 +24,12 @@ exports.create = async (req, res, next) => {
 exports.findAll = async (req, res, next) => {
     try {
         const fileService = new FileService(MySQL.connection);
-        const { tenFile, duAn, nguoiTao } = req.query;
+        const { tenFile, idCongViec, idNguoiTao, task } = req.query;
         const filter = {};
         if (tenFile) filter.tenFile = tenFile;
-        if (duAn) filter.duAn = duAn;
-        if (nguoiTao) filter.nguoiTao = nguoiTao;
+        if (idCongViec) filter.idCongViec = idCongViec;
+        if (idNguoiTao) filter.idNguoiTao = idNguoiTao;
+        if (task) filter.idCongViec = task;
         const documents = await fileService.find(filter);
         return res.json(documents);
     } catch (error) {
