@@ -5,12 +5,12 @@ class ProjectService {
 
     async extractProjectData(payload) {
         return {
-            tenDA: payload.tenDA,
-            ngayBD: payload.ngayBD,
-            ngayKT: payload.ngayKT,
+            tenDA: payload.tenDA ?? null,
+            ngayBD: payload.ngayBD ?? null,
+            ngayKT: payload.ngayKT ?? null,
             trangThai: payload.trangThai ?? "Chưa bắt đầu",
             deactive: payload.deactive ?? null,
-            idNguoiTao: payload.idNguoiTao,
+            idNguoiTao: payload.idNguoiTao ?? null,
         };
     }
 
@@ -88,17 +88,22 @@ class ProjectService {
     }
 
     async update(id, payload) {
-        const project = await this.extractProjectData(payload);
-        let sql = "UPDATE DuAn SET ";
         const fields = [];
         const params = [];
-        for (const key in project) {
+
+        for (const key in payload) {
             if (key === "id") continue;
             fields.push(`${key} = ?`);
-            params.push(project[key]);
+            params.push(payload[key]);
         }
-        sql += fields.join(", ") + " WHERE id = ?";
+
+        if (fields.length === 0) {
+            throw new Error("Không có trường nào để cập nhật.");
+        }
+
+        const sql = `UPDATE DuAn SET ${fields.join(", ")} WHERE id = ?`;
         params.push(id);
+
         await this.mysql.execute(sql, params);
         return this.findById(id);
     }

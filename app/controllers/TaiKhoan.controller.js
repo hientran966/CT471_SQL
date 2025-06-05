@@ -168,3 +168,29 @@ exports.getAvatar = async (req, res, next) => {
         next(new ApiError(500, "An error occurred while retrieving the avatar"));
     }
 };
+
+//Lấy tài khoản vô hiệu
+exports.getDeactive = async (req, res, next) => {
+    let documents = [];
+
+    try {
+        const authService = new AuthService(MySQL.connection);
+        //Nếu có tham số tìm kiếm thì tìm kiếm theo tham số đó
+        const {tenNV, email} = req.query;
+        if (tenNV || email) {
+            documents = await authService.getDeactive({
+                tenNV,
+                email
+            });
+        } else {
+            documents = await authService.getDeactive({});
+        }
+    } catch (error) {
+        console.error(error);
+        return next(
+            new ApiError(500, "An error occurred while retrieving the account")
+        );
+    }
+
+    return res.send(documents);
+};

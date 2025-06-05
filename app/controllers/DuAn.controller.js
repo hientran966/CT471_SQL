@@ -4,8 +4,14 @@ const ProjectService = require("../services/DuAn.service");
 
 //Tạo dự án
 exports.create = async (req, res, next) => {
+    const ngayBD = new Date(req.body.ngayBD);
+    const ngayKT = new Date(req.body.ngayKT);
+
     if (!req.body.tenDA) {
         return next(new ApiError(400, "Tên dự án không được để trống"));
+    }
+    if (ngayKT < ngayBD) {
+        return next(new ApiError(400, "Ngày kết thúc không hợp lệ"));
     }
 
     try {
@@ -70,10 +76,6 @@ exports.findOne = async (req, res, next) => {
 
 //Cập nhật dự án
 exports.update = async (req, res, next) => {
-    if (!req.body.tenDA) {
-        return next(new ApiError(400, "Tên dự án không được để trống"));
-    }
-
     try {
         const projectService = new ProjectService(MySQL.connection);
         const document = await projectService.update(req.params.id, req.body);

@@ -8,6 +8,12 @@ router.route("/")
     .post(auth.create)
     .delete(auth.deleteAll);
 
+router.route("/deactive/:id")
+    .put(auth.restore)
+
+router.route("/deactive")
+    .get(auth.getDeactive)
+
 router.route("/login")
     .post(auth.login);
 

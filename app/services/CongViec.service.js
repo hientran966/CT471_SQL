@@ -7,16 +7,12 @@ class TaskService {
     return {
       tenCV: payload.tenCV,
       moTa: payload.moTa,
-      doUuTien: payload.doUuTien ?? "Thấp",
-      doQuanTrong: payload.doQuanTrong ?? 0,
-      ngayBD: payload.ngayBD,
-      ngayKT: payload.ngayKT,
-      tienDo: payload.tienDo ?? 0,
-      trangThai: payload.trangThai ?? "Chưa bắt đầu",
+      ngayBD: payload.ngayBD ?? null,
+      ngayKT: payload.ngayKT ?? null,
       deactive: payload.deactive ?? null,
-      idNguoiTao: payload.idNguoiTao,
+      idNguoiTao: payload.idNguoiTao ?? null,
       idNhomCV: payload.idNhomCV ?? null,
-      idDuAn: payload.idDuAn,
+      idDuAn: payload.idDuAn ?? null,
     };
   }
 
@@ -39,17 +35,13 @@ class TaskService {
       task.id = newId;
 
       const [result] = await connection.execute(
-        "INSERT INTO CongViec (id, tenCV, moTa, doUuTien, doQuanTrong, ngayBD, ngayKT, tienDo, trangThai, deactive, idNguoiTao, idNhomCV, idDuAn) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO CongViec (id, tenCV, moTa, ngayBD, ngayKT, deactive, idNguoiTao, idNhomCV, idDuAn) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
           task.id,
           task.tenCV,
           task.moTa,
-          task.doUuTien,
-          task.doQuanTrong,
           task.ngayBD,
           task.ngayKT,
-          task.tienDo,
-          task.trangThai,
           task.deactive,
           task.idNguoiTao,
           task.idNhomCV,
@@ -73,10 +65,6 @@ class TaskService {
     if (filter.tenCV) {
       sql += " AND tenCV LIKE ?";
       params.push(`%${filter.tenCV}%`);
-    }
-    if (filter.trangThai) {
-      sql += " AND trangThai = ?";
-      params.push(filter.trangThai);
     }
     if (filter.idDuAn) {
       sql += " AND idDuAn = ?";

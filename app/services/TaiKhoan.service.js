@@ -32,8 +32,8 @@ class AuthService {
         if (!payload.tenNV) {
             throw new Error("Cần có tên nhân viên");
         }
-        if (!payload.email || !payload.Password) {
-            throw new Error("Cần có email và mật khẩu");
+        if (!payload.email) {
+            throw new Error("Cần có email");
         }
         // Kiểm tra tài khoản đã tồn tại
         const [email] = await this.mysql.execute(
@@ -42,6 +42,10 @@ class AuthService {
         );
         if (email.length > 0) throw new Error("Tài khoản đã tồn tại");
 
+        if (!payload.Password) {
+            payload.Password = "defaultPW";
+        }
+   
         const auth = await this.extractAuthData(payload);
         const connection = await this.mysql.getConnection();
         try {
@@ -193,6 +197,25 @@ class AuthService {
         if (!fileRows.length) return null;
 
         return fileRows[0].duongDan;
+    }
+
+    async getDeactive(filter = {}) {
+        let sql = "SELECT * FROM TaiKhoan WHERE deactive IS NOT NULL";
+        let params = [];
+        if (filter.email) {
+            sql += " AND email LIKE ?";
+            params.push(`%${filter.email}%`);
+        }
+        if (filter.vaiTro) {
+            sql += " AND vaiTro = ?";
+            params.push(filter.vaiTro);
+        }
+        if (filter.tenNV) {
+            sql += " AND tenNV LIKE ?";
+            params.push(`%${filter.tenNV}%`);
+        }
+        const [rows] = await this.mysql.execute(sql, params);
+        return rows;
     }
 }
 
