@@ -133,6 +133,19 @@ class ProjectService {
         );
         return true;
     }
+
+    async findByAccountId(accountId) {
+        const sql = `
+            SELECT DISTINCT da.*
+            FROM DuAn        da
+            JOIN CongViec    cv ON cv.idDuAn     = da.id
+            JOIN PhanCong    pc ON pc.idCongViec = cv.id
+            WHERE pc.idNguoiNhan = ?
+            AND da.deactive IS NULL
+        `;
+        const [rows] = await this.mysql.execute(sql, [accountId]);
+        return rows;
+    }
 }
 
 module.exports = ProjectService;

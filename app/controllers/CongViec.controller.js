@@ -145,3 +145,14 @@ exports.findByProject = async (req, res, next) => {
         );
     }
 };
+
+exports.findByAccountId = async (req, res, next) => {
+  try {
+    const taskService = new TaskService(MySQL.connection);
+    const documents = await taskService.findByAccountId(req.params.id);
+    return res.send(documents);
+  } catch (error) {
+    console.error(error);
+    return next(new ApiError(500, "Đã xảy ra lỗi khi lấy công việc theo tài khoản"));
+  }
+};

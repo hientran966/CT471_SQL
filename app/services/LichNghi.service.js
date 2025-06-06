@@ -156,6 +156,15 @@ class CalendarService {
         );
         return deletedAt;
     }
+
+    async getNgayBu(idNgayBu) {
+        if (!idNgayBu) return null;
+        const [rows] = await this.mysql.execute(
+            "SELECT ngayBD, ngayKT FROM NgayBu WHERE id = ?",
+            [idNgayBu]
+        );
+        return rows[0] || null;
+    }
 }
 
 module.exports = CalendarService;

@@ -138,6 +138,16 @@ class TaskService {
     await this.mysql.execute("UPDATE CongViec SET deactive = ?", [deletedAt]);
     return true;
   }
+
+  async findByAccountId(accountId) {
+    const sql = `
+      SELECT cv.*, pc.moTa FROM CongViec cv
+      INNER JOIN PhanCong pc ON cv.id = pc.idCongViec
+      WHERE pc.idNguoiNhan = ? AND cv.deactive IS NULL
+    `;
+    const [rows] = await this.mysql.execute(sql, [accountId]);
+    return rows;
+  }
 }
 
 module.exports = TaskService;

@@ -13,4 +13,6 @@ router.route("/:id")
     .put(project.update)
     .delete(project.delete);
 
+router.get("/account/:id", project.findByAccountId);
+
 module.exports = router;

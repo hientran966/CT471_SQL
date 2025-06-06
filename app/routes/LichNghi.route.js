@@ -13,4 +13,7 @@ router.route("/:id")
     .put(calendar.update)
     .delete(calendar.delete);
 
+router.post("/ngaybu", calendar.createNgayBu);
+router.get("/ngaybu/:idNgayBu", calendar.getNgayBu);
+
 module.exports = router;

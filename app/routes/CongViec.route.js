@@ -16,4 +16,6 @@ router.route("/:id")
 router.route("/project/:id")
     .get(task.findByProject);
 
+router.get("/account/:id", task.findByAccountId);
+
 module.exports = router;

@@ -129,3 +129,20 @@ exports.deleteAll = async (req, res, next) => {
         );
     }
 };
+
+//Lấy các dự án được phân công theo tài khoản
+exports.findByAccountId = async (req, res, next) => {
+    try {
+        const projectService = new ProjectService(MySQL.connection);
+        const documents = await projectService.findByAccountId(req.params.id);
+        return res.send(documents);
+    } catch (error) {
+        console.error(error);
+        return next(
+            new ApiError(
+                500,
+                `Đã xảy ra lỗi khi lấy dự án theo idNguoiNhan=${req.params.id}`
+            )
+        );
+    }
+};
