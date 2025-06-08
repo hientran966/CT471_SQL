@@ -8,6 +8,8 @@ router.route("/")
     .post(auth.create)
     .delete(auth.deleteAll);
 
+router.get("/department/:id", auth.getDepartment);
+
 router.route("/deactive/:id")
     .put(auth.restore)
 

@@ -37,7 +37,7 @@ class AuthService {
         }
         // Kiểm tra tài khoản đã tồn tại
         const [email] = await this.mysql.execute(
-            "SELECT * FROM TaiKhoan WHERE email = ?",
+            "SELECT id FROM TaiKhoan WHERE email = ?",
             [payload.email]
         );
         if (email.length > 0) throw new Error("Tài khoản đã tồn tại");
@@ -175,8 +175,9 @@ class AuthService {
             [email]
         );
         const auth = rows[0];
-        if (!auth || !(await this.comparePassword(Password, auth.password))) {
-            throw new Error("Invalid credentials");
+        if (!auth) throw new Error("Tài khoản không tồn tại");
+        if (!(await this.comparePassword(password, auth.password))) {
+            throw new Error("Mật khẩu không đúng");
         }
         return { ...auth };
     }
@@ -217,6 +218,27 @@ class AuthService {
         const [rows] = await this.mysql.execute(sql, params);
         return rows;
     }
+
+    async getDepartment(id) {
+        const [userRows] = await this.mysql.execute(
+            "SELECT idPhong FROM TaiKhoan WHERE id = ? AND deactive IS NULL",
+            [id]
+        );
+        if (!userRows.length || !userRows[0].idPhong) {
+            return [];
+        }
+
+        const idPhong = userRows[0].idPhong;
+
+        const [accounts] = await this.mysql.execute(
+            `SELECT * FROM TaiKhoan
+            WHERE idPhong = ? AND deactive IS NULL`,
+            [idPhong]
+        );
+
+        return accounts;
+    }
+
 }
 
 module.exports = AuthService;

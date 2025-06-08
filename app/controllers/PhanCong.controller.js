@@ -209,3 +209,19 @@ exports.findByTask = async (req, res, next) => {
         );
     }
 };
+
+//Báo cáo
+exports.report = async (req, res, next) => {
+    try {
+        const assignmentService = new AssignmentService(MySQL.pool);
+        const fileId = req.body.idDinhKem || null;
+        const result = await assignmentService.report(req.params.id, req.body);
+        if (!result) {
+            return next(new ApiError(404, "Không tìm thấy phân công để báo cáo"));
+        }
+        return res.send(result);
+    } catch (error) {
+        console.error(error);
+        return next(new ApiError(500, "Đã xảy ra lỗi khi gửi báo cáo"));
+    }
+};

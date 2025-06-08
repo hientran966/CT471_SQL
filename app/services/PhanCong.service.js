@@ -1,18 +1,20 @@
+const FileService = require("./File.service"); 
+
 class AssignmentService {
     constructor(mysql) {
         this.mysql = mysql;
     }
 
     async extractAssignmentData(payload) {
-        return {
-            moTa: payload.moTa,
-            idCongViec: payload.idCongViec,
-            tienDoCaNhan: payload.tienDoCaNhan,
-            idNguoiNhan: payload.idNguoiNhan,
-            ngayNhan: payload.ngayNhan ?? null,
-            ngayHoanTat: payload.ngayHoanTat ?? null,
-            trangThai: payload.trangThai ?? "Chưa bắt đầu",
-        };
+        const result = {};
+        if (payload.moTa !== undefined) result.moTa = payload.moTa;
+        if (payload.idCongViec !== undefined) result.idCongViec = payload.idCongViec;
+        if (payload.tienDoCaNhan !== undefined) result.tienDoCaNhan = payload.tienDoCaNhan;
+        if (payload.idNguoiNhan !== undefined) result.idNguoiNhan = payload.idNguoiNhan;
+        result.ngayNhan = payload.ngayNhan ?? null;
+        result.ngayHoanTat = payload.ngayHoanTat ?? null;
+        result.trangThai = payload.trangThai ?? "Chưa bắt đầu";
+        return result;
     }
 
     async extractTransferData(payload) {
@@ -21,6 +23,27 @@ class AssignmentService {
             idNguoiNhanMoi: payload.idNguoiNhanMoi,
             ngayNhanMoi: payload.ngayNhanMoi,
         };
+    }
+
+    extractReportData(payload) {
+        return {
+            moTa: payload.moTa ?? null,
+            tienDoCaNhan: payload.tienDoCaNhan ?? null,
+            trangThai: payload.trangThai ?? null,
+            idNguoiGui: payload.idNguoiGui,
+        };
+    }
+
+    async generateUniqueBaoCaoId(connection) {
+        const [rows] = await connection.execute(
+            "SELECT id FROM BaoCao WHERE id LIKE 'BC%%%%%%' ORDER BY id DESC LIMIT 1"
+        );
+        let num = 1;
+        if (rows.length) {
+            const last = parseInt(rows[0].id.slice(2), 10);
+            if (!Number.isNaN(last)) num = last + 1;
+        }
+        return "BC" + num.toString().padStart(6, "0");
     }
 
     async create(payload) {
@@ -252,6 +275,68 @@ class AssignmentService {
         );
         return true;
     }
+
+    async report(idPhanCong, payload) {
+        const assignment = await this.findById(idPhanCong);
+        if (!assignment) return null;
+
+        const idDinhKem = payload.idDinhKem || null;
+
+        const connection = await this.mysql.getConnection();
+        try {
+            await connection.beginTransaction();
+
+            const baoCaoId = await this.generateUniqueBaoCaoId(connection);
+            const reportData = this.extractReportData(payload);
+
+            await connection.execute(
+                `INSERT INTO BaoCao
+                (id, moTa, tienDoCaNhan, trangThai, idNguoiGui, idPhanCong, idDinhKem)
+                VALUES (?,?,?,?,?,?,?)`,
+                [
+                    baoCaoId,
+                    reportData.moTa,
+                    reportData.tienDoCaNhan,
+                    reportData.trangThai,
+                    reportData.idNguoiGui,
+                    idPhanCong,
+                    idDinhKem,
+                ]
+            );
+
+            const fields = [];
+            const params = [];
+            if (reportData.tienDoCaNhan !== null) {
+                fields.push("tienDoCaNhan = ?");
+                params.push(reportData.tienDoCaNhan);
+            }
+            if (reportData.trangThai) {
+                fields.push("trangThai = ?");
+                params.push(reportData.trangThai);
+            }
+            if (fields.length) {
+                params.push(idPhanCong);
+                await connection.execute(
+                    `UPDATE PhanCong SET ${fields.join(", ")} WHERE id = ?`,
+                    params
+                );
+            }
+
+            await connection.commit();
+            return {
+                baoCaoId,
+                idDinhKem,
+                updatedTienDo: reportData.tienDoCaNhan,
+                updatedTrangThai: reportData.trangThai,
+            };
+        } catch (err) {
+            await connection.rollback();
+            throw err;
+        } finally {
+            connection.release();
+        }
+    }
+
 }
 
 module.exports = AssignmentService;

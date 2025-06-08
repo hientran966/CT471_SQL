@@ -106,6 +106,9 @@ exports.update = async (req, res, next) => {
 
 // Thêm phiên bản file
 exports.addVersion = async (req, res, next) => {
+    if (!req.body.tenFile || !req.body.fileDataBase64) {
+        return next(new ApiError(400, "Thiếu dữ liệu file hoặc nội dung file"));
+    }
     try {
         const fileService = new FileService(MySQL.connection);
         const document = await fileService.addVersion(req.params.id, req.body);

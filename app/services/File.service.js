@@ -11,6 +11,7 @@ class FileService {
             tenFile: payload.tenFile ?? null,
             idNguoiTao: payload.idNguoiTao ?? null,
             idCongViec: payload.idCongViec ?? null,
+            idPhanCong: payload.idPhanCong ?? null,
             deactive: payload.deactive ?? null,
         };
     }
@@ -64,6 +65,16 @@ class FileService {
     async create(payload) {
         const file = await this.extractFileData(payload);
         const version = await this.extractVersionData(payload);
+
+        const [assignRows] = await this.mysql.execute(
+            "SELECT idCongViec FROM PhanCong WHERE id = ?",
+            [payload.idPhanCong]
+        );
+        file.idCongViec = assignRows[0]?.idCongViec ?? null;
+
+        if (!payload.tenFile || typeof payload.tenFile !== 'string') {
+            throw new Error("Tên file không hợp lệ.");
+        }
         
         const connection = await this.mysql.getConnection();
         try {

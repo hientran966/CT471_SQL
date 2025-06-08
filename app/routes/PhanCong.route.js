@@ -20,6 +20,9 @@ router.route("/:id/transfer")
 router.route("/:id/chain")
     .get(assignment.getFullTransferChain);
 
+router.route("/:id/report")
+    .put(assignment.report);
+
 router.route("/task/:task")
     .get(assignment.findByTask);
 

@@ -194,3 +194,15 @@ exports.getDeactive = async (req, res, next) => {
 
     return res.send(documents);
 };
+
+//Lấy danh sách tài khoản cùng phòng ban
+exports.getDepartment = async (req, res, next) => {
+    try {
+        const authService = new AuthService(MySQL.connection);
+        const accounts = await authService.getDepartment(req.params.id);
+        return res.send(accounts);
+    } catch (error) {
+        console.error("Get department error:", error);
+        next(new ApiError(500, "An error occurred while retrieving department accounts"));
+    }
+};
