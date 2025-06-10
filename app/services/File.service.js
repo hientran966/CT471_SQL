@@ -66,11 +66,13 @@ class FileService {
         const file = await this.extractFileData(payload);
         const version = await this.extractVersionData(payload);
 
-        const [assignRows] = await this.mysql.execute(
-            "SELECT idCongViec FROM PhanCong WHERE id = ?",
-            [payload.idPhanCong]
-        );
-        file.idCongViec = assignRows[0]?.idCongViec ?? null;
+        if (payload.idPhanCong) {
+            const [assignRows] = await this.mysql.execute(
+                "SELECT idCongViec FROM PhanCong WHERE id = ?",
+                [payload.idPhanCong]
+            );
+            let idCongViec = assignRows[0]?.idCongViec;
+        }
 
         if (!payload.tenFile || typeof payload.tenFile !== 'string') {
             throw new Error("Tên file không hợp lệ.");

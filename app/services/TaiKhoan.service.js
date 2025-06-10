@@ -176,7 +176,7 @@ class AuthService {
         );
         const auth = rows[0];
         if (!auth) throw new Error("Tài khoản không tồn tại");
-        if (!(await this.comparePassword(password, auth.password))) {
+        if (!(await this.comparePassword(Password, auth.password))) {
             throw new Error("Mật khẩu không đúng");
         }
         return { ...auth };

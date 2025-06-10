@@ -10,6 +10,7 @@ class AssignmentService {
         if (payload.moTa !== undefined) result.moTa = payload.moTa;
         if (payload.idCongViec !== undefined) result.idCongViec = payload.idCongViec;
         if (payload.tienDoCaNhan !== undefined) result.tienDoCaNhan = payload.tienDoCaNhan;
+        if (payload.doQuanTrong !== undefined) result.doQuanTrong = payload.doQuanTrong;
         if (payload.idNguoiNhan !== undefined) result.idNguoiNhan = payload.idNguoiNhan;
         result.ngayNhan = payload.ngayNhan ?? null;
         result.ngayHoanTat = payload.ngayHoanTat ?? null;
@@ -62,10 +63,11 @@ class AssignmentService {
             assignment.id = newId;
 
             await connection.execute(
-                "INSERT INTO PhanCong (id, idCongViec, tienDoCaNhan, idNguoiNhan, ngayNhan, ngayHoanTat, trangThai, moTa) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO PhanCong (id, idCongViec, doQuanTrong, tienDoCaNhan, idNguoiNhan, ngayNhan, ngayHoanTat, trangThai, moTa) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 [
                     assignment.id,
                     assignment.idCongViec,
+                    assignment.doQuanTrong,
                     assignment.tienDoCaNhan,
                     assignment.idNguoiNhan,
                     assignment.ngayNhan,

@@ -16,7 +16,7 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', cors(), express.static(path.join(__dirname, 'uploads')));
 
 app.get("/", (req, res) => {
     res.json({ message: "Ứng dụng quản lý công việc."});
