@@ -148,3 +148,18 @@ exports.deleteAll = async (req, res, next) => {
         return next(new ApiError(500, "Đã xảy ra lỗi khi xóa tất cả file"));
     }
 };
+
+// Duyệt file
+exports.approve = async (req, res, next) => {
+    try {
+        const fileService = new FileService(MySQL.connection);
+        const document = await fileService.approve(req.params.id, req.body);
+        if (!document) {
+            return next(new ApiError(404, "File không tồn tại"));
+        }
+        return res.json(document);
+    } catch (error) {
+        console.error(error);
+        return next(new ApiError(500, "Đã xảy ra lỗi khi duyệt file"));
+    }
+};

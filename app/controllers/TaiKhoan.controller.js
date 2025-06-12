@@ -206,3 +206,34 @@ exports.getDepartment = async (req, res, next) => {
         next(new ApiError(500, "An error occurred while retrieving department accounts"));
     }
 };
+
+//Đổi mật khẩu
+exports.changePassword = async (req, res, next) => {
+    const { oldPassword, newPassword } = req.body;
+    if (!oldPassword || !newPassword) {
+        return next(new ApiError(400, "Old password and new password are required"));
+    }
+
+    try {
+        const authService = new AuthService(MySQL.connection);
+        const result = await authService.changePassword(req.params.id, oldPassword, newPassword);
+        return res.send(result);
+    } catch (error) {
+        console.error("Change password error:", error);
+        const statusCode = error.statusCode || 500;
+        const message = error.message || "An error occurred while changing the password";
+        next(new ApiError(statusCode, message));
+    }
+};
+
+// Lấy số công việc đang thực hiện
+exports.getAssignNumber = async (req, res, next) => {
+    try {
+        const authService = new AuthService(MySQL.connection);
+        const count = await authService.getAssignNumber(req.params.id);
+        return res.send({ count });
+    } catch (error) {
+        console.error("Get assignments count error:", error);
+        next(new ApiError(500, "An error occurred while retrieving assignments count"));
+    }
+}

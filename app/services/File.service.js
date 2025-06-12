@@ -20,6 +20,7 @@ class FileService {
         return {
             ngayUpload: payload.ngayUpload ?? new Date(),
             deactive: payload.deactive ?? null,
+            trangThai: payload.trangThai ?? "Chờ duyệt",
             idFile: payload.idFile ?? null,
         };
     }
@@ -111,12 +112,13 @@ class FileService {
 
             // Tạo phiên bản đầu tiên cho file
             await connection.execute(
-                "INSERT INTO PhienBan (id, soPB, duongDan, ngayUpload, deactive, idFile) VALUES (?, ?, ?, ?, ?, ?)",
+                "INSERT INTO PhienBan (id, soPB, duongDan, ngayUpload, trangThai, deactive, idFile) VALUES (?, ?, ?, ?, ?, ?, ?)",
                 [
                     version.id,
                     version.soPB,
                     version.duongDan,
                     version.ngayUpload,
+                    version.trangThai,
                     version.deactive,
                     file.id,
                 ]
@@ -261,6 +263,25 @@ class FileService {
             [deleteAt]
         );
         return deleteAt;
+    }
+
+    async approve(id) {
+        const [rows] = await this.mysql.execute(
+            "SELECT * FROM PhienBan WHERE id = ? AND deactive IS NULL",
+            [id]
+        );
+        if (rows.length === 0) {
+            throw new Error("Phiên bản không tồn tại hoặc đã bị xóa.");
+        }
+        const version = rows[0];
+        if (version.trangThai !== "Chờ duyệt") {
+            throw new Error("Phiên bản đã được duyệt hoặc không cần duyệt.");
+        }
+        await this.mysql.execute(
+            "UPDATE PhienBan SET trangThai = 'Đã duyệt' WHERE id = ?",
+            [id]
+        );
+        return { ...version, trangThai: 'Đã duyệt' };
     }
 }
 

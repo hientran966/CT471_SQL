@@ -20,6 +20,7 @@ router.route("/:id/version")
 router.route("/:id/version/:versionId")
     .get(file.findVersion)
 
-
+router.route("/:id/version/:versionId/approve")
+    .put(file.approve);
 
 module.exports = router;

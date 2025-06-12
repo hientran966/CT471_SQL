@@ -16,6 +16,7 @@ class AuthService {
             idPhong: payload.idPhong ?? null,
             avatar: payload.avatar ?? "FI000001",
             deactive: payload.deactive ?? null,
+            admin: payload.admin ?? false,
         };
         Object.keys(auth).forEach((key) => {
             if (auth[key] === undefined) delete auth[key];
@@ -65,8 +66,8 @@ class AuthService {
 
             // Thêm tài khoản mới
             await connection.execute(
-                `INSERT INTO TaiKhoan (id, email, tenNV, gioiTinh, SDT, diaChi, vaiTro, Password, deactive, avatar, idPhong, updateAt)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                `INSERT INTO TaiKhoan (id, email, tenNV, gioiTinh, SDT, diaChi, vaiTro, Password, deactive, avatar, idPhong, updateAt, admin)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
                 [
                     auth.id,
                     auth.email,
@@ -79,7 +80,8 @@ class AuthService {
                     auth.deactive,
                     auth.avatar,
                     auth.idPhong,
-                    updateAt
+                    updateAt,
+                    auth.admin ? 1 : 0
                 ]
             );
                 await connection.commit(); // Commit Transaction
@@ -239,6 +241,40 @@ class AuthService {
         return accounts;
     }
 
+    async changePassword(id, oldPassword, newPassword) {
+        const [rows] = await this.mysql.execute(
+            "SELECT Password FROM TaiKhoan WHERE id = ?",
+            [id]
+        );
+        if (rows.length === 0) {
+            const error = new Error("Tài khoản không tồn tại");
+            error.statusCode = 404;
+            throw error;
+        }
+
+        const storedPassword = rows[0].Password;
+        if (!(await this.comparePassword(oldPassword, storedPassword))) {
+            const error = new Error("Mật khẩu cũ không đúng");
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+        await this.mysql.execute(
+            "UPDATE TaiKhoan SET Password = ?, updateAt = ? WHERE id = ?",
+            [hashedNewPassword, new Date(), id]
+        );
+
+        return { message: "Đổi mật khẩu thành công" };
+    }
+
+    async getAssignNumber(id) {
+        const [rows] = await this.mysql.execute(
+            "SELECT COUNT(*) AS count FROM TaiKhoan JOIN PhanCong ON TaiKhoan.id = PhanCong.idNguoiNhan WHERE TaiKhoan.id = ? AND TaiKhoan.deactive IS NULL AND PhanCong.trangThai = 'Đang thực hiện'",
+            [id]
+        );
+        return rows[0].count;
+    }
 }
 
 module.exports = AuthService;

@@ -27,4 +27,9 @@ router.route("/:id")
     .put(auth.update)
     .delete(auth.delete);
 
+router.route("/:id/password")
+    .put(auth.changePassword);
+router.route("/:id/assign")
+    .get(auth.getAssignNumber);
+
 module.exports = router;

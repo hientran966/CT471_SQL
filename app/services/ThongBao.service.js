@@ -1,9 +1,9 @@
-class NoficationService {
+class NotificationService {
     constructor(mysql) {
         this.mysql = mysql;
     }
 
-    async extractNoficationData(payload) {
+    extractNotificationData(payload) {
         return {
             tieuDe: payload.tieuDe ?? null,
             noiDung: payload.noiDung,
@@ -15,42 +15,54 @@ class NoficationService {
             idNhomCV: payload.idNhomCV ?? null,
             idDuAn: payload.idDuAn ?? null,
             idPhanHoi: payload.idPhanHoi ?? null,
+            idPhienBan: payload.idPhienBan ?? null,
         };
     }
 
     async create(payload) {
-        const nofication = await this.extractNoficationData(payload);
+        const notification = this.extractNotificationData(payload);
         const connection = await this.mysql.getConnection();
         try {
             await connection.beginTransaction();
-            const [rows] = await connection.execute("SELECT id FROM ThongBao WHERE id LIKE 'TB%%%%%%' ORDER BY id DESC LIMIT 1");
+
+            const [rows] = await connection.execute(
+                "SELECT id FROM ThongBao WHERE id LIKE 'TB%%%%%%' ORDER BY id DESC LIMIT 1 FOR UPDATE"
+            );
+
             let newIdNumber = 1;
             if (rows.length > 0) {
                 const lastId = rows[0].id;
                 const num = parseInt(lastId.slice(2), 10);
                 if (!isNaN(num)) newIdNumber = num + 1;
             }
+
             const newId = "TB" + newIdNumber.toString().padStart(6, "0");
-            nofication.id = newId;
+            notification.id = newId;
+
+            const values = [
+                notification.id,
+                notification.tieuDe ?? null,
+                notification.noiDung ?? null,
+                notification.idNguoiDang ?? null,
+                notification.ngayDang ?? new Date(),
+                notification.deactive ?? null,
+                notification.idPhanCong ?? null,
+                notification.idCongViec ?? null,
+                notification.idNhomCV ?? null,
+                notification.idDuAn ?? null,
+                notification.idPhanHoi ?? null,
+                notification.idPhienBan ?? null,
+            ];
 
             await connection.execute(
-                "INSERT INTO ThongBao (id, tieuDe, noiDung, idNguoiDang, ngayDang, deactive, idPhanCong, idCongViec, idNhomCV, idDuAn, idPhanHoi) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                [
-                    nofication.id,
-                    nofication.tieuDe,
-                    nofication.noiDung,
-                    nofication.idNguoiDang,
-                    nofication.ngayDang,
-                    nofication.deactive,
-                    nofication.idPhanCong,
-                    nofication.idCongViec,
-                    nofication.idNhomCV,
-                    nofication.idDuAn,
-                    nofication.idPhanHoi,
-                ]
+                `INSERT INTO ThongBao 
+                (id, tieuDe, noiDung, idNguoiDang, ngayDang, deactive, idPhanCong, idCongViec, idNhomCV, idDuAn, idPhanHoi, idPhienBan) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+                values
             );
+
             await connection.commit();
-            return { ...nofication };
+            return { ...notification };
         } catch (error) {
             await connection.rollback();
             throw error;
@@ -59,25 +71,41 @@ class NoficationService {
         }
     }
 
-    async find(filter = {}) {
-        let sql = "SELECT * FROM ThongBao";
-        let params = [];
+    async find(filter = {}, { page = 1, pageSize = 20 } = {}) {
+        let sql = "FROM ThongBao WHERE deactive IS NULL";
+        const params = [];
+
         if (filter.tieuDe) {
-            sql += " WHERE tieuDe LIKE ?";
+            sql += " AND tieuDe LIKE ?";
             params.push(`%${filter.tieuDe}%`);
         }
+
         if (filter.idNguoiDang) {
-            sql += params.length ? " AND" : " WHERE";
-            sql += " idNguoiDang = ?";
+            sql += " AND idNguoiDang = ?";
             params.push(filter.idNguoiDang);
         }
+
         if (filter.idDuAn) {
-            sql += params.length ? " AND" : " WHERE";
-            sql += " idDuAn = ?";
+            sql += " AND idDuAn = ?";
             params.push(filter.idDuAn);
         }
-        const [rows] = await this.mysql.execute(sql, params);
-        return rows;
+
+        const [data] = await this.mysql.execute(
+            `SELECT * ${sql} ORDER BY ngayDang DESC LIMIT ? OFFSET ?`,
+            [...params, pageSize, (page - 1) * pageSize]
+        );
+
+        const [countResult] = await this.mysql.execute(
+            `SELECT COUNT(*) as total ${sql}`,
+            params
+        );
+
+        return {
+            data,
+            total: countResult[0].total,
+            page,
+            pageSize,
+        };
     }
 
     async findById(id) {
@@ -89,21 +117,24 @@ class NoficationService {
     }
 
     async update(id, payload) {
-        const nofication = this.extractNoficationData(payload);
-        let sql = "UPDATE ThongBao SET ";
+        const notification = this.extractNotificationData(payload);
         const fields = [];
         const params = [];
-        for (const key in nofication) {
-            if (key === "id") continue;
+
+        for (const [key, value] of Object.entries(notification)) {
+            if (key === "id" || value === undefined) continue;
             fields.push(`${key} = ?`);
-            params.push(nofication[key]);
+            params.push(value);
         }
-        sql += fields.join(", ") + " WHERE id = ?";
+
+        if (fields.length === 0) return null;
+
+        const sql = `UPDATE ThongBao SET ${fields.join(", ")} WHERE id = ?`;
         params.push(id);
         await this.mysql.execute(sql, params);
-        return { ...nofication };
+        return { id, ...payload };
     }
-    
+
     async delete(id) {
         const deleteAt = new Date();
         await this.mysql.execute(
@@ -123,12 +154,68 @@ class NoficationService {
 
     async deleteAll() {
         const deleteAt = new Date();
-        await this.mysql.execute(
-            "UPDATE ThongBao SET deactive = ?",
-            [deleteAt]
-        );
-        return true;
+        const connection = await this.mysql.getConnection();
+        try {
+            await connection.beginTransaction();
+            await connection.execute("UPDATE ThongBao SET deactive = ?", [deleteAt]);
+            await connection.commit();
+            return true;
+        } catch (err) {
+            await connection.rollback();
+            throw err;
+        } finally {
+            connection.release();
+        }
+    }
+
+    getNotificationByTaskId(taskId) {
+        return this.mysql.execute(
+            "SELECT * FROM ThongBao WHERE idCongViec = ? AND deactive IS NULL",
+            [taskId]
+        ).then(([rows]) => rows);
+    }
+
+    getNotificationByProjectId(projectId) {
+        return this.mysql.execute(
+            "SELECT * FROM ThongBao WHERE idDuAn = ? AND deactive IS NULL",
+            [projectId]
+        ).then(([rows]) => rows);
+    }
+
+    getNotificationByGroupId(groupId) {
+        return this.mysql.execute(
+            "SELECT * FROM ThongBao WHERE idNhomCV = ? AND deactive IS NULL",
+            [groupId]
+        ).then(([rows]) => rows);
+    }
+
+    getNotificationByAssignmentId(assignmentId) {
+        return this.mysql.execute(
+            "SELECT * FROM ThongBao WHERE idPhanCong = ? AND deactive IS NULL",
+            [assignmentId]
+        ).then(([rows]) => rows);
+    }
+
+    getNotificationByCommentId(commentId) {
+        return this.mysql.execute(
+            "SELECT * FROM ThongBao WHERE idPhanHoi = ? AND deactive IS NULL",
+            [commentId]
+        ).then(([rows]) => rows);
+    }
+
+    getNotificationByVersionId(versionId) {
+        return this.mysql.execute(
+            "SELECT * FROM ThongBao WHERE idPhienBan = ? AND deactive IS NULL",
+            [versionId]
+        ).then(([rows]) => rows);
+    }
+
+    getNotificationByUserId(userId) {
+        return this.mysql.execute(
+            "SELECT * FROM ThongBao WHERE idNguoiDang = ? AND deactive IS NULL ORDER BY ngayDang DESC",
+            [userId]
+        ).then(([rows]) => rows);
     }
 }
 
-module.exports = NoficationService;
+module.exports = NotificationService;
