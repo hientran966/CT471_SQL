@@ -22,29 +22,6 @@ exports.create = async (req, res, next) => {
     }
 };
 
-//Chuyển giao
-exports.transfer = async (req, res, next) => {
-    if (!req.body.idNguoiNhanMoi) {
-        return next(new ApiError(400, "Người nhận mới không được để trống"));
-    }
-    if (!req.body.ngayNhanMoi) {
-        return next(new ApiError(400, "Ngày nhận mới không được để trống"));
-    }
-    try {
-        const assignmentService = new AssignmentService(MySQL.pool);
-        const result = await assignmentService.transfer(req.params.id, req.body);
-        if (!result) {
-            return next(new ApiError(404, "Không tìm thấy phân công để chuyển giao"));
-        }
-        return res.send(result);
-    } catch (error) {
-        console.error(error);
-        return next(
-            new ApiError(500, "Đã xảy ra lỗi khi chuyển giao")
-        );
-    }
-};
-
 //Lấy tất cả
 exports.findAll = async (req, res, next) => {
     let documents = [];
@@ -223,5 +200,89 @@ exports.report = async (req, res, next) => {
     } catch (error) {
         console.error(error);
         return next(new ApiError(500, "Đã xảy ra lỗi khi gửi báo cáo"));
+    }
+};
+
+// Bắt đầu chuyển giao
+exports.startTransfer = async (req, res, next) => {
+    if (!req.body.idNguoiNhan) {
+        return next(new ApiError(400, "Người nhận mới không được để trống"));
+    }
+    try {
+        const assignmentService = new AssignmentService(MySQL.pool);
+        const result = await assignmentService.initiateTransfer(req.params.id, req.body);
+        if (!result) {
+            return next(new ApiError(404, "Không tìm thấy phân công để bắt đầu chuyển giao"));
+        }
+        return res.send(result);
+    } catch (error) {
+        console.error(error);
+        return next(
+            new ApiError(500, "Đã xảy ra lỗi khi bắt đầu chuyển giao")
+        );
+    }
+};
+
+// Hoàn tất chuyển giao
+exports.completeTransfer = async (req, res, next) => {
+    try {
+        const assignmentService = new AssignmentService(MySQL.pool);
+        const result = await assignmentService.acceptTransfer(req.params.id, req.body);
+        if (!result) {
+            return next(new ApiError(404, "Không tìm thấy phân công để hoàn tất chuyển giao"));
+        }
+        return res.send(result);
+    } catch (error) {
+        console.error(error);
+        return next(
+            new ApiError(500, "Đã xảy ra lỗi khi hoàn tất chuyển giao")
+        );
+    }
+};
+
+// Từ chối chuyển giao
+exports.rejectTransfer = async (req, res, next) => {
+    try {
+        const assignmentService = new AssignmentService(MySQL.pool);
+        const result = await assignmentService.rejectTransfer(req.params.id);
+        if (!result) {
+            return next(new ApiError(404, "Không tìm thấy phân công để từ chối chuyển giao"));
+        }
+        return res.send(result);
+    } catch (error) {
+        console.error(error);
+        return next(
+            new ApiError(500, "Đã xảy ra lỗi khi từ chối chuyển giao")
+        );
+    }
+};
+
+// Lấy chuỗi chuyển giao theo người dùng
+exports.getTransferByUser = async (req, res, next) => {
+    try {
+        const assignmentService = new AssignmentService(MySQL.pool);
+        const chain = await assignmentService.getTransferByUser(req.params.id);
+        if (!chain) {
+            return next(new ApiError(404, "Không tìm thấy chuỗi chuyển giao cho người dùng"));
+        }
+        return res.send(chain);
+    } catch (error) {
+        console.error(error);
+        return next(new ApiError(500, "Đã xảy ra lỗi khi lấy chuỗi chuyển giao"));
+    }
+};
+
+// Lấy chuyển giao đang chờ
+exports.getPendingTransfer = async (req, res, next) => {
+    try {
+        const assignmentService = new AssignmentService(MySQL.pool);
+        const pendingTransfer = await assignmentService.getPendingTransfer(req.params.id);
+        if (!pendingTransfer) {
+            return next(new ApiError(404, "Không tìm thấy chuyển giao đang chờ"));
+        }
+        return res.send(pendingTransfer);
+    } catch (error) {
+        console.error(error);
+        return next(new ApiError(500, "Đã xảy ra lỗi khi lấy chuyển giao đang chờ"));
     }
 };

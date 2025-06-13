@@ -13,9 +13,23 @@ router.route("/:id")
     .put(assignment.update)
     .delete(assignment.delete);
 
+router.route("/:id/pending")
+    .get(assignment.getPendingTransfer);
+
+router.route("/:id/userTransfer")
+    .get(assignment.getTransferByUser);
+
 router.route("/:id/transfer")
-    .get(assignment.findTransferHistory)
-    .put(assignment.transfer);
+    .get(assignment.findTransferHistory);
+
+router.route("/:id/transfer/start")
+    .put(assignment.startTransfer);
+
+router.route("/:id/transfer/complete")
+    .put(assignment.completeTransfer);
+
+router.route("/:id/transfer/reject")
+    .put(assignment.rejectTransfer);
 
 router.route("/:id/chain")
     .get(assignment.getFullTransferChain);

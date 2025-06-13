@@ -1,5 +1,3 @@
-const FileService = require("./File.service"); 
-
 class AssignmentService {
     constructor(mysql) {
         this.mysql = mysql;
@@ -20,9 +18,11 @@ class AssignmentService {
 
     async extractTransferData(payload) {
         return {
-            moTaChuyenGiao: payload.moTaChuyenGiao,
-            idNguoiNhanMoi: payload.idNguoiNhanMoi,
+            moTa: payload.moTa,
+            idNguoiNhan: payload.idNguoiNhan,
+            idNguoiGui: payload.idNguoiGui,
             ngayNhanMoi: payload.ngayNhanMoi,
+            trangThai: payload.trangThai ?? "Chờ nhận",
         };
     }
 
@@ -32,6 +32,7 @@ class AssignmentService {
             tienDoCaNhan: payload.tienDoCaNhan ?? null,
             trangThai: payload.trangThai ?? null,
             idNguoiGui: payload.idNguoiGui,
+            ngayCapNhat: payload.ngayCapNhat ?? new Date(),
         };
     }
 
@@ -83,95 +84,6 @@ class AssignmentService {
             throw error; // Ném lại lỗi để xử lý ở nơi khác
         } finally {
             connection.release(); // Giải phóng kết nối
-        }
-    }
-
-    async transfer(id, payload) {
-        const connection = await this.mysql.getConnection();
-        try {
-            await connection.beginTransaction(); // Bắt đầu Transaction
-
-            const transfer = await this.extractTransferData(payload);
-
-            const [transRows] = await connection.execute("SELECT id FROM LichSuChuyenGiao WHERE id LIKE 'CG%%%%%%' ORDER BY id DESC LIMIT 1");
-            let newIdNumber = 1;
-            if (transRows.length > 0) {
-                const lastId = transRows[0].id;
-                const num = parseInt(lastId.slice(2), 10);
-                if (!isNaN(num)) newIdNumber = num + 1;
-            }
-            const newId = "CG" + newIdNumber.toString().padStart(6, "0");
-            transfer.id = newId;
-
-            // Lấy dữ liệu phân công cũ
-            const [rows] = await connection.execute("SELECT * FROM PhanCong WHERE id = ?", [id]);
-            if (rows.length === 0) {
-                await connection.rollback();
-                connection.release();
-                return null;
-            }
-            const oldAssignment = rows[0];
-
-            // Tạo bản ghi PhanCong mới với người nhận mới, ngày nhận mới
-            const newAssignmentPayload = {
-                moTa: oldAssignment.moTa,
-                idCongViec: oldAssignment.idCongViec,
-                tienDoCaNhan: oldAssignment.tienDoCaNhan,
-                idNguoiNhan: payload.idNguoiNhanMoi,
-                ngayNhan: payload.ngayNhanMoi,
-                ngayHoanTat: null,
-                trangThai: oldAssignment.trangThai,
-            };
-
-            // Tạo id mới cho PhanCong
-            const [rowsPC] = await connection.execute("SELECT id FROM PhanCong WHERE id LIKE 'PC%%%%%%' ORDER BY id DESC LIMIT 1");
-            let newPCIdNumber = 1;
-            if (rowsPC.length > 0) {
-                const lastPCId = rowsPC[0].id;
-                const numPC = parseInt(lastPCId.slice(2), 10);
-                if (!isNaN(numPC)) newPCIdNumber = numPC + 1;
-            }
-            const newPCId = "PC" + newPCIdNumber.toString().padStart(6, "0");
-            newAssignmentPayload.id = newPCId;
-
-            await connection.execute(
-                "INSERT INTO PhanCong (id, idCongViec, tienDoCaNhan, idNguoiNhan, ngayNhan, ngayHoanTat, trangThai, moTa) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                [
-                    newAssignmentPayload.id,
-                    newAssignmentPayload.idCongViec,
-                    newAssignmentPayload.tienDoCaNhan,
-                    newAssignmentPayload.idNguoiNhan,
-                    newAssignmentPayload.ngayNhan,
-                    newAssignmentPayload.ngayHoanTat,
-                    newAssignmentPayload.trangThai,
-                    newAssignmentPayload.moTa,
-                ]
-            );
-
-            // Tạo bản ghi ChuyenGiao với idTruoc (id cũ), idSau (id mới)
-            await connection.execute(
-                "INSERT INTO LichSuChuyenGiao (id, idTruoc, idSau, moTa) VALUES (?, ?, ?, ?)",
-                [transfer.id, id, newAssignmentPayload.id, transfer.moTaChuyenGiao]
-            );
-
-            // Cập nhật trạng thái PhanCong cũ thành "Đã chuyển giao" và ngày hoàn tất thành ngày hiện tại
-            const currentDate = new Date();
-            await connection.execute(
-                "UPDATE PhanCong SET trangThai = ?, ngayHoanTat = ? WHERE id = ?",
-                ["Đã chuyển giao", currentDate, id]
-            );
-
-            await connection.commit(); // Commit Transaction
-            connection.release();
-
-            return {
-                oldAssignment,
-                newAssignment: newAssignmentPayload
-            };
-        } catch (err) {
-            await connection.rollback(); // Rollback Transaction
-            connection.release();
-            throw err;
         }
     }
 
@@ -293,8 +205,8 @@ class AssignmentService {
 
             await connection.execute(
                 `INSERT INTO BaoCao
-                (id, moTa, tienDoCaNhan, trangThai, idNguoiGui, idPhanCong, idDinhKem)
-                VALUES (?,?,?,?,?,?,?)`,
+                (id, moTa, tienDoCaNhan, trangThai, idNguoiGui, idPhanCong, idDinhKem, ngayCapNhat)
+                VALUES (?,?,?,?,?,?,?, ?)`,
                 [
                     baoCaoId,
                     reportData.moTa,
@@ -303,6 +215,7 @@ class AssignmentService {
                     reportData.idNguoiGui,
                     idPhanCong,
                     idDinhKem,
+                    reportData.ngayCapNhat || new Date(),
                 ]
             );
 
@@ -339,6 +252,153 @@ class AssignmentService {
         }
     }
 
+    async initiateTransfer(id, payload) {
+        const connection = await this.mysql.getConnection();
+        try {
+            await connection.beginTransaction();
+
+            const [lastRows] = await connection.execute(
+                "SELECT id FROM LichSuChuyenGiao WHERE id LIKE 'CG%%%%%%' ORDER BY id DESC LIMIT 1"
+            );
+            let newIdNumber = 1;
+            if (lastRows.length > 0) {
+                const lastId = lastRows[0].id;
+                const num = parseInt(lastId.slice(2), 10);
+                if (!isNaN(num)) newIdNumber = num + 1;
+            }
+            const newTransferId = "CG" + newIdNumber.toString().padStart(6, "0");
+
+            await connection.execute(
+                `INSERT INTO LichSuChuyenGiao (id, idTruoc, idSau, moTa, idNguoiNhan, idNguoiGui, trangThai)
+                VALUES (?, ?, NULL, ?, ?, ?, 'Chưa nhận')`,
+                [
+                    newTransferId,
+                    id,
+                    payload.moTa ?? null,
+                    payload.idNguoiNhan ?? null,
+                    payload.idNguoiGui ?? null
+                ]
+            );
+
+            await connection.commit();
+            return { id: newTransferId };
+        } catch (err) {
+            await connection.rollback();
+            throw err;
+        } finally {
+            connection.release();
+        }
+    }
+
+    async acceptTransfer(idChuyenGiao, payload) {
+        const connection = await this.mysql.getConnection();
+        try {
+            await connection.beginTransaction();
+
+            // Lấy thông tin chuyển giao
+            const [cgRows] = await connection.execute(
+                "SELECT * FROM LichSuChuyenGiao WHERE id = ? AND trangThai = 'Chưa nhận'",
+                [idChuyenGiao]
+            );
+            if (!cgRows.length) throw new Error("Không tìm thấy chuyển giao đang chờ nhận.");
+
+            const transfer = cgRows[0];
+            transfer.ngayNhanMoi = payload.ngayNhanMoi || new Date();
+
+            // Lấy phân công cũ
+            const [assignRows] = await connection.execute(
+                "SELECT * FROM PhanCong WHERE id = ?",
+                [transfer.idTruoc]
+            );
+            if (!assignRows.length) throw new Error("Phân công cũ không tồn tại.");
+
+            const oldAssignment = assignRows[0];
+
+            // Tạo id mới cho PhanCong
+            const [lastPC] = await connection.execute(
+                "SELECT id FROM PhanCong WHERE id LIKE 'PC%%%%%%' ORDER BY id DESC LIMIT 1"
+            );
+            let newIdNumber = 1;
+            if (lastPC.length > 0) {
+                const num = parseInt(lastPC[0].id.slice(2), 10);
+                if (!isNaN(num)) newIdNumber = num + 1;
+            }
+            const newPCId = "PC" + newIdNumber.toString().padStart(6, "0");
+
+            // Tạo PhanCong mới
+            await connection.execute(
+                `INSERT INTO PhanCong (id, idCongViec, moTa, tienDoCaNhan, idNguoiNhan, ngayNhan, ngayHoanTat, trangThai)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    newPCId,
+                    oldAssignment.idCongViec,
+                    oldAssignment.moTa,
+                    oldAssignment.tienDoCaNhan,
+                    transfer.idNguoiNhan,
+                    transfer.ngayNhanMoi,
+                    null,
+                    "Chưa bắt đầu"
+                ]
+            );
+
+            // Cập nhật bản ghi chuyển giao
+            await connection.execute(
+                "UPDATE LichSuChuyenGiao SET idSau = ?, trangThai = 'Đã nhận' WHERE id = ?",
+                [newPCId, idChuyenGiao]
+            );
+
+            // Cập nhật phân công cũ
+            await connection.execute(
+                "UPDATE PhanCong SET trangThai = ?, ngayHoanTat = ? WHERE id = ?",
+                ["Đã chuyển giao", new Date(), transfer.idTruoc]
+            );
+
+            await connection.commit();
+            return { newAssignmentId: newPCId };
+        } catch (err) {
+            await connection.rollback();
+            throw err;
+        } finally {
+            connection.release();
+        }
+    }
+
+    async rejectTransfer(idChuyenGiao) {
+        const connection = await this.mysql.getConnection();
+        try {
+            await connection.beginTransaction();
+
+            // Cập nhật trạng thái chuyển giao
+            await connection.execute(
+                "UPDATE LichSuChuyenGiao SET trangThai = 'Từ chối' WHERE id = ?",
+                [idChuyenGiao]
+            );
+
+            await connection.commit();
+            return { id: idChuyenGiao, status: "Từ chối" };
+        } catch (err) {
+            await connection.rollback();
+            throw err;
+        } finally {
+            connection.release();
+        }
+    }
+
+    async getTransferByUser(userId) {
+        const [rows] = await this.mysql.execute(
+            "SELECT * FROM LichSuChuyenGiao WHERE idNguoiNhan = ? OR idNguoiGui = ?",
+            [userId , userId]
+        );
+        return rows || [];
+    }
+
+    async getPendingTransfer(id) {
+        const [rows] = await this.mysql.execute(
+            "SELECT * FROM LichSuChuyenGiao WHERE idSau = ? AND trangThai = 'Chưa nhận'",
+            [id]
+        );
+        return rows[0] || null;
+    }
 }
 
 module.exports = AssignmentService;
