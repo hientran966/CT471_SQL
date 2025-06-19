@@ -18,21 +18,12 @@ class ProjectService {
         const project = await this.extractProjectData(payload);
         const connection = await this.mysql.getConnection();
         try {
-            await connection.beginTransaction(); // Bắt đầu Transaction
-            const [rows] = await connection.execute("SELECT id FROM DuAn WHERE id LIKE 'DA%%%%%%' ORDER BY id DESC LIMIT 1");
-            let newIdNumber = 1;
-            if (rows.length > 0) {
-                const lastId = rows[0].id;
-                const num = parseInt(lastId.slice(2), 10);
-                if (!isNaN(num)) newIdNumber = num + 1;
-            }
-            const newId = "DA" + newIdNumber.toString().padStart(6, "0");
-            project.id = newId;
+            await connection.beginTransaction();
 
-            await connection.execute(
-                "INSERT INTO DuAn (id, tenDA, ngayBD, ngayKT, deactive, trangThai, idNguoiTao) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            // Bước 1: Chèn tạm chưa có `id`
+            const [result] = await connection.execute(
+                "INSERT INTO DuAn (tenDA, ngayBD, ngayKT, deactive, trangThai, idNguoiTao) VALUES (?, ?, ?, ?, ?, ?)",
                 [
-                    project.id,
                     project.tenDA,
                     project.ngayBD,
                     project.ngayKT,
@@ -41,14 +32,24 @@ class ProjectService {
                     project.idNguoiTao,
                 ]
             );
-            await connection.commit(); // Commit Transaction
-            return { ...project };
-        }
-        catch (error) {
-            await connection.rollback(); // Rollback Transaction
-            throw error; // Ném lại lỗi để xử lý ở nơi khác
+
+            // Bước 2: Lấy autoId để tạo id định dạng DAxxxxxx
+            const autoId = result.insertId;
+            const newId = "DA" + autoId.toString().padStart(6, "0");
+
+            // Bước 3: Cập nhật id
+            await connection.execute(
+                "UPDATE DuAn SET id = ? WHERE autoId = ?",
+                [newId, autoId]
+            );
+
+            await connection.commit();
+            return { id: newId, ...project };
+        } catch (error) {
+            await connection.rollback();
+            throw error;
         } finally {
-            connection.release(); // Giải phóng kết nối
+            connection.release();
         }
     }
 

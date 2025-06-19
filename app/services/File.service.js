@@ -25,28 +25,6 @@ class FileService {
         };
     }
 
-    async generateUniqueId() {
-        const [rows] = await this.mysql.execute("SELECT id FROM File WHERE id LIKE 'FI%%%%%%%' ORDER BY id DESC LIMIT 1");
-        let newIdNumber = 1;
-        if (rows.length > 0) {
-            const lastId = rows[0].id;
-            const num = parseInt(lastId.slice(2), 10);
-            if (!isNaN(num)) newIdNumber = num + 1;
-        }
-        return "FI" + newIdNumber.toString().padStart(6, "0");
-    }
-
-    async generateUniqueVersionId() {
-        const [rows] = await this.mysql.execute("SELECT id FROM PhienBan WHERE id LIKE 'PB%%%%%%%' ORDER BY id DESC LIMIT 1");
-        let newIdNumber = 1;
-        if (rows.length > 0) {
-            const lastId = rows[0].id;
-            const num = parseInt(lastId.slice(2), 10);
-            if (!isNaN(num)) newIdNumber = num + 1;
-        }
-        return "PB" + newIdNumber.toString().padStart(6, "0");
-    }
-
     // Lưu file từ payload chứa base64 với tên duy nhất
     async saveFileFromPayload(payload) {
         const { tenFile, fileDataBase64 } = payload;
@@ -67,70 +45,69 @@ class FileService {
         const file = await this.extractFileData(payload);
         const version = await this.extractVersionData(payload);
 
-        if (payload.idPhanCong) {
-            const [assignRows] = await this.mysql.execute(
-                "SELECT idCongViec FROM PhanCong WHERE id = ?",
-                [payload.idPhanCong]
-            );
-            let idCongViec = assignRows[0]?.idCongViec;
-        }
-
         if (!payload.tenFile || typeof payload.tenFile !== 'string') {
             throw new Error("Tên file không hợp lệ.");
         }
-        
+
         const connection = await this.mysql.getConnection();
         try {
-            await connection.beginTransaction(); // Bắt đầu Transaction
-            
-            // Lưu file vật lý trước
+            await connection.beginTransaction();
+
+            // Lưu file vật lý
             let duongDan = null;
             if (payload.fileDataBase64 && payload.tenFile) {
                 duongDan = await this.saveFileFromPayload(payload);
             }
-            version.duongDan = duongDan || null;
-            
-            //Tạo id cho file và phiên bản
-            file.id = await this.generateUniqueId();
-            version.id = await this.generateUniqueVersionId();
+            version.duongDan = duongDan;
 
-            // Lấy số phiên bản hiện tại
-            const [verCountRows] = await connection.execute("SELECT COUNT(*) as count FROM PhienBan WHERE idFile = ? AND deactive IS NULL", [file.id]);
-            const currentVersion = verCountRows[0].count + 1;
-            version.soPB = currentVersion;
+            // B1: Tạo bản ghi File (chưa có id)
+            const [fileResult] = await connection.execute(
+                "INSERT INTO File (tenFile, idNguoiTao, idCongViec, idPhanCong) VALUES (?, ?, ?, ?)",
+                [file.tenFile, file.idNguoiTao, file.idCongViec, file.idPhanCong]
+            );
+            const fileAutoId = fileResult.insertId;
+            const fileId = "FI" + fileAutoId.toString().padStart(6, "0");
+            file.id = fileId;
 
-            // Tạo file
             await connection.execute(
-                "INSERT INTO File (id, tenFile, idNguoiTao, idCongViec, idPhanCong) VALUES (?, ?, ?, ?, ?)",
-                [
-                    file.id,
-                    file.tenFile,
-                    file.idNguoiTao,
-                    file.idCongViec,
-                    file.idPhanCong,
-                ]
+                "UPDATE File SET id = ? WHERE autoId = ?",
+                [fileId, fileAutoId]
             );
 
-            // Tạo phiên bản đầu tiên cho file
-            await connection.execute(
-                "INSERT INTO PhienBan (id, soPB, duongDan, ngayUpload, trangThai, deactive, idFile) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            // B2: Tạo phiên bản đầu tiên
+            const [verCountRows] = await connection.execute(
+                "SELECT COUNT(*) as count FROM PhienBan WHERE idFile = ? AND deactive IS NULL",
+                [fileId]
+            );
+            version.soPB = verCountRows[0].count + 1;
+
+            const [verResult] = await connection.execute(
+                "INSERT INTO PhienBan (soPB, duongDan, ngayUpload, trangThai, deactive, idFile) VALUES (?, ?, ?, ?, ?, ?)",
                 [
-                    version.id,
                     version.soPB,
                     version.duongDan,
                     version.ngayUpload,
                     version.trangThai,
                     version.deactive,
-                    file.id,
+                    fileId
                 ]
             );
-            await connection.commit(); // Commit Transaction
-            return { ...file, duongDan: version.duongDan, idFile: file.id, idVersion: version.id };
+            const verAutoId = verResult.insertId;
+            const versionId = "PB" + verAutoId.toString().padStart(6, "0");
+            version.id = versionId;
+
+            await connection.execute(
+                "UPDATE PhienBan SET id = ? WHERE autoId = ?",
+                [versionId, verAutoId]
+            );
+
+            await connection.commit();
+            return { ...file, duongDan: version.duongDan, idFile: fileId, idVersion: versionId };
         } catch (error) {
-            await connection.rollback(); // Rollback Transaction nếu có lỗi
+            await connection.rollback();
             throw error;
         } finally {
-            connection.release(); // Giải phóng kết nối
+            connection.release();
         }
     }
 
@@ -202,33 +179,41 @@ class FileService {
     }
 
     async addVersion(id, payload) {
-        // Kiểm tra id và payload hợp lệ
-        if (!payload) {
-            throw new Error("Thiếu payload khi thêm phiên bản file.");
-        }
-        // Nếu có file base64 thì lưu file vật lý trước
+        if (!payload) throw new Error("Thiếu payload khi thêm phiên bản file.");
+
         let duongDan = null;
         if (payload.fileDataBase64 && payload.tenFile) {
             duongDan = await this.saveFileFromPayload(payload);
         }
+
         const version = await this.extractVersionData(payload);
-        version.id = await this.generateUniqueVersionId();
-        // Lấy số phiên bản hiện tại
-        const [verCountRows] = await this.mysql.execute("SELECT COUNT(*) as count FROM PhienBan WHERE idFile = ? AND deactive IS NULL", [id]);
-        const currentVersion = verCountRows[0].count + 1;
-        version.soPB = currentVersion;
-        if (duongDan) version.duongDan = duongDan;
-        const [result] = await this.mysql.execute(
-            "INSERT INTO PhienBan (id, soPB, duongDan, ngayUpload, deactive, idFile) VALUES (?, ?, ?, ?, ?, ?)",
+        version.duongDan = duongDan;
+
+        const [verCountRows] = await this.mysql.execute(
+            "SELECT COUNT(*) as count FROM PhienBan WHERE idFile = ? AND deactive IS NULL",
+            [id]
+        );
+        version.soPB = verCountRows[0].count + 1;
+
+        const [verResult] = await this.mysql.execute(
+            "INSERT INTO PhienBan (soPB, duongDan, ngayUpload, trangThai, deactive, idFile) VALUES (?, ?, ?, ?, ?, ?)",
             [
-                version.id,
                 version.soPB,
                 version.duongDan,
                 version.ngayUpload,
+                version.trangThai,
                 version.deactive,
-                id,
+                id
             ]
         );
+        const verAutoId = verResult.insertId;
+        version.id = "PB" + verAutoId.toString().padStart(6, "0");
+
+        await this.mysql.execute(
+            "UPDATE PhienBan SET id = ? WHERE autoId = ?",
+            [version.id, verAutoId]
+        );
+
         return { ...version, idFile: id };
     }
 

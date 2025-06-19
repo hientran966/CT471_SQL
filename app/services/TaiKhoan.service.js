@@ -25,51 +25,33 @@ class AuthService {
     }
 
     async create(payload) {
-        // Kiểm tra dữ liệu đầu vào
-        if (!payload) {
-            throw new Error("Không có dữ liệu đầu vào");
-        }
-        // Kiểm tra các trường bắt buộc
-        if (!payload.tenNV) {
-            throw new Error("Cần có tên nhân viên");
-        }
-        if (!payload.email) {
-            throw new Error("Cần có email");
-        }
-        // Kiểm tra tài khoản đã tồn tại
+        if (!payload) throw new Error("Không có dữ liệu đầu vào");
+        if (!payload.tenNV) throw new Error("Cần có tên nhân viên");
+        if (!payload.email) throw new Error("Cần có email");
+
+        // Kiểm tra trùng email
         const [email] = await this.mysql.execute(
             "SELECT id FROM TaiKhoan WHERE email = ?",
             [payload.email]
         );
         if (email.length > 0) throw new Error("Tài khoản đã tồn tại");
 
-        if (!payload.Password) {
-            payload.Password = "defaultPW";
-        }
-   
+        // Mật khẩu mặc định
+        if (!payload.Password) payload.Password = "defaultPW";
+
         const auth = await this.extractAuthData(payload);
         const connection = await this.mysql.getConnection();
+
         try {
-            await connection.beginTransaction(); // Bắt đầu Transaction
-            const [rows] = await connection.execute("SELECT id FROM TaiKhoan WHERE id LIKE 'AC%%%%%%' ORDER BY id DESC LIMIT 1");
-            let newIdNumber = 1;
-            if (rows.length > 0) {
-                const lastId = rows[0].id;
-                const num = parseInt(lastId.slice(2), 10);
-                if (!isNaN(num)) newIdNumber = num + 1;
-            }
-            const newId = "AC" + newIdNumber.toString().padStart(6, "0");
-            auth.id = newId;
+            await connection.beginTransaction();
 
             const hashedPassword = await bcrypt.hash(payload.Password, 10);
-            const updateAt = new Date;
+            const updateAt = new Date();
 
-            // Thêm tài khoản mới
-            await connection.execute(
-                `INSERT INTO TaiKhoan (id, email, tenNV, gioiTinh, SDT, diaChi, vaiTro, Password, deactive, avatar, idPhong, updateAt, admin)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+            const [result] = await connection.execute(
+                `INSERT INTO TaiKhoan (email, tenNV, gioiTinh, SDT, diaChi, vaiTro, Password, deactive, avatar, idPhong, updateAt, admin)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
-                    auth.id,
                     auth.email,
                     auth.tenNV,
                     auth.gioiTinh,
@@ -84,15 +66,25 @@ class AuthService {
                     auth.admin ? 1 : 0
                 ]
             );
-                await connection.commit(); // Commit Transaction
-            return { id: auth.id, email: auth.email, vaiTro: auth.vaiTro };
+
+            const autoId = result.insertId;
+            const newId = "AC" + autoId.toString().padStart(6, "0");
+            await connection.execute(
+                "UPDATE TaiKhoan SET id = ? WHERE autoId = ?",
+                [newId, autoId]
+            );
+
+            await connection.commit();
+
+            return { id: newId, email: auth.email, vaiTro: auth.vaiTro };
         } catch (error) {
-            await connection.rollback(); // Rollback Transaction
-            throw error; // Ném lại lỗi để xử lý ở nơi khác
+            await connection.rollback();
+            throw error;
         } finally {
-            connection.release(); // Giải phóng kết nối
+            connection.release();
         }
     }
+
 
     async find(filter = {}) {
         let sql = "SELECT * FROM TaiKhoan WHERE deactive IS NULL";

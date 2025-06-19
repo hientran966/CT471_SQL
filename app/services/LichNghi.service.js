@@ -21,27 +21,19 @@ class CalendarService {
         const connection = await this.mysql.getConnection();
         try {
             await connection.beginTransaction();
-            const [rows] = await connection.execute("SELECT id FROM LichNghi WHERE id LIKE 'LN%%%%%%' ORDER BY id DESC LIMIT 1");
-            let newIdNumber = 1;
-            if (rows.length > 0) {
-                const lastId = rows[0].id;
-                const num = parseInt(lastId.slice(2), 10);
-                if (!isNaN(num)) newIdNumber = num + 1;
-            }
-            const newId = "LN" + newIdNumber.toString().padStart(6, "0");
-            calendar.id = newId;
 
+            // Tạo ngày bù nếu có
             calendar.idNgayBu = null;
             if (calendar.ngayBDBu && calendar.ngayKTBu) {
                 calendar.idNgayBu = await this.createDate({
                     ngayBDBu: calendar.ngayBDBu,
                     ngayKTBu: calendar.ngayKTBu
-                });
+                }, connection);
             }
-            await connection.execute(
-                "INSERT INTO LichNghi (id, tieuDe, ngayBD, ngayKT, deactive, idNgayBu) VALUES (?, ?, ?, ?, ?, ?)",
+
+            const [result] = await connection.execute(
+                "INSERT INTO LichNghi (tieuDe, ngayBD, ngayKT, deactive, idNgayBu) VALUES (?, ?, ?, ?, ?)",
                 [
-                    calendar.id,
                     calendar.tieuDe,
                     calendar.ngayBD,
                     calendar.ngayKT,
@@ -49,8 +41,17 @@ class CalendarService {
                     calendar.idNgayBu,
                 ]
             );
+
+            const autoId = result.insertId;
+            const newId = "LN" + autoId.toString().padStart(6, "0");
+
+            await connection.execute(
+                "UPDATE LichNghi SET id = ? WHERE autoId = ?",
+                [newId, autoId]
+            );
+
             await connection.commit();
-            return { ...calendar };
+            return { id: newId, ...calendar };
         } catch (error) {
             await connection.rollback();
             throw error;
@@ -59,28 +60,23 @@ class CalendarService {
         }
     }
 
-    async createDate(payload) {
+    async createDate(payload, connection = this.mysql) {
         const calendar = await this.extractCalendarData(payload);
-        const [rows] = await this.mysql.execute("SELECT id FROM NgayBu WHERE id LIKE 'NB%%%%%%' ORDER BY id DESC LIMIT 1");
-        let newIdNumber = 1;
-        if (rows.length > 0) {
-            const lastId = rows[0].id;
-            const num = parseInt(lastId.slice(2), 10);
-            if (!isNaN(num)) newIdNumber = num + 1;
-        }
-        const newId = "NB" + newIdNumber.toString().padStart(6, "0");
-        calendar.id = newId;
 
-        await this.mysql.execute(
-            "INSERT INTO NgayBu (id, ngayBD, ngayKT) VALUES (?, ?, ?)",
-            [
-                calendar.id,
-                calendar.ngayBDBu,
-                calendar.ngayKTBu,
-            ]
+        const [result] = await connection.execute(
+            "INSERT INTO NgayBu (ngayBD, ngayKT) VALUES (?, ?)",
+            [calendar.ngayBDBu, calendar.ngayKTBu]
         );
 
-        return calendar.id;
+        const autoId = result.insertId;
+        const newId = "NB" + autoId.toString().padStart(6, "0");
+
+        await connection.execute(
+            "UPDATE NgayBu SET id = ? WHERE autoId = ?",
+            [newId, autoId]
+        );
+
+        return newId;
     }
 
     async find(filter = {}) {

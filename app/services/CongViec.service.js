@@ -20,24 +20,13 @@ class TaskService {
     const task = await this.extractTaskData(payload);
     const connection = await this.mysql.getConnection();
     try {
-      await connection.beginTransaction(); // Bắt đầu Transaction
-      
-      const [rows] = await connection.execute(
-        "SELECT id FROM CongViec WHERE id LIKE 'CV%%%%%%' ORDER BY id DESC LIMIT 1"
-      );
-      let newIdNumber = 1;
-      if (rows.length > 0) {
-        const lastId = rows[0].id;
-        const num = parseInt(lastId.slice(2), 10);
-        if (!isNaN(num)) newIdNumber = num + 1;
-      }
-      const newId = "CV" + newIdNumber.toString().padStart(6, "0");
-      task.id = newId;
+      await connection.beginTransaction(); // Bắt đầu transaction
 
+      // Bước 1: Chèn task chưa có id
       const [result] = await connection.execute(
-        "INSERT INTO CongViec (id, tenCV, moTa, ngayBD, ngayKT, deactive, idNguoiTao, idNhomCV, idDuAn) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        `INSERT INTO CongViec (tenCV, moTa, ngayBD, ngayKT, deactive, idNguoiTao, idNhomCV, idDuAn)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          task.id,
           task.tenCV,
           task.moTa,
           task.ngayBD,
@@ -48,10 +37,21 @@ class TaskService {
           task.idDuAn,
         ]
       );
-      await connection.commit(); // Commit Transaction
-      return { id: task.id, ...task };
+
+      // Bước 2: Lấy autoId để gán id mới dạng CVxxxxxx
+      const autoId = result.insertId;
+      const newId = "CV" + autoId.toString().padStart(6, "0");
+
+      // Bước 3: Cập nhật id theo định dạng
+      await connection.execute(
+        "UPDATE CongViec SET id = ? WHERE autoId = ?",
+        [newId, autoId]
+      );
+
+      await connection.commit(); // Hoàn tất transaction
+      return { id: newId, ...task };
     } catch (error) {
-      await connection.rollback(); // Rollback Transaction nếu có lỗi
+      await connection.rollback(); // Rollback nếu có lỗi
       throw error;
     } finally {
       connection.release(); // Giải phóng kết nối
