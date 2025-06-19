@@ -101,12 +101,13 @@ class FileService {
 
             // Tạo file
             await connection.execute(
-                "INSERT INTO File (id, tenFile, idNguoiTao, idCongViec) VALUES (?, ?, ?, ?)",
+                "INSERT INTO File (id, tenFile, idNguoiTao, idCongViec, idPhanCong) VALUES (?, ?, ?, ?, ?)",
                 [
                     file.id,
                     file.tenFile,
                     file.idNguoiTao,
                     file.idCongViec,
+                    file.idPhanCong,
                 ]
             );
 
@@ -147,6 +148,14 @@ class FileService {
         if (filter.idCongViec) {
             sql += " AND idCongViec = ?";
             params.push(filter.idCongViec);
+        }
+        if (filter.idPhanCong) {
+            sql += " AND idPhanCong = ?";
+            params.push(filter.idPhanCong);
+        }
+        if (filter.idDuAn) {
+            sql += " AND idDuAn = ?";
+            params.push(filter.idDuAn);
         }
         const [rows] = await this.mysql.execute(sql, params);
         return rows;

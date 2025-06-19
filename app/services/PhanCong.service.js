@@ -399,6 +399,14 @@ class AssignmentService {
         );
         return rows[0] || null;
     }
+
+    async getReportById(id) {
+        const [rows] = await this.mysql.execute(
+            "SELECT * FROM BaoCao WHERE idPhanCong = ?",
+            [id]
+        );
+        return rows || null;
+    }
 }
 
 module.exports = AssignmentService;

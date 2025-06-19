@@ -286,3 +286,18 @@ exports.getPendingTransfer = async (req, res, next) => {
         return next(new ApiError(500, "Đã xảy ra lỗi khi lấy chuyển giao đang chờ"));
     }
 };
+
+// Lấy báo cáo
+exports.getReport = async (req, res, next) => {
+    try {
+        const assignmentService = new AssignmentService(MySQL.pool);
+        const report = await assignmentService.getReportById(req.params.id);
+        if (!report) {
+            return next(new ApiError(404, "Không tìm thấy báo cáo cho phân công này"));
+        }
+        return res.send(report);
+    } catch (error) {
+        console.error(error);
+        return next(new ApiError(500, "Đã xảy ra lỗi khi lấy báo cáo"));
+    }
+};
