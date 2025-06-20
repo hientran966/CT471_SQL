@@ -4,8 +4,8 @@ const RoleService = require("../services/VaiTro.service");
 
 // Tạo vai trò
 exports.create = async (req, res, next) => {
-    if (!req.body.tenChucVu) {
-        return next(new ApiError(400, "Tên chức vụ không được để trống"));
+    if (!req.body.tenVaiTro) {
+        return next(new ApiError(400, "Tên vai trò không được để trống"));
     }
 
     try {
@@ -25,9 +25,9 @@ exports.findAll = async (req, res, next) => {
     try {
         const roleService = new RoleService(MySQL.connection);
         // Nếu có tham số tìm kiếm thì tìm kiếm theo tham số đó
-        const { tenChucVu, phanQuyen } = req.query;
-        if (tenChucVu || phanQuyen) {
-            documents = await roleService.find({ tenChucVu, phanQuyen });
+        const { tenVaiTro, phanQuyen } = req.query;
+        if (tenVaiTro || phanQuyen) {
+            documents = await roleService.find({ tenVaiTro, phanQuyen });
         } else {
             documents = await roleService.find({});
         }
@@ -56,8 +56,8 @@ exports.findOne = async (req, res, next) => {
 
 // Cập nhật vai trò
 exports.update = async (req, res, next) => {
-    if (!req.body.tenChucVu) {
-        return next(new ApiError(400, "Tên chức vụ không được để trống"));
+    if (!req.body.tenVaiTro) {
+        return next(new ApiError(400, "Tên vai trò không được để trống"));
     }
 
     try {

@@ -267,6 +267,19 @@ class AuthService {
         );
         return rows[0].count;
     }
+
+    async getRole(id) {
+        const [rows] = await this.mysql.execute(
+            "SELECT vt.phanQuyen FROM TaiKhoan AS tk JOIN VaiTro AS vt ON tk.vaiTro = vt.id WHERE tk.id = ? AND tk.deactive IS NULL",
+            [id]
+        );
+        if (rows.length === 0) {
+            const error = new Error("Tài khoản không tồn tại");
+            error.statusCode = 404;
+            throw error;
+        }
+        return rows[0];
+    }
 }
 
 module.exports = AuthService;

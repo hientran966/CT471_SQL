@@ -6,7 +6,7 @@ class DepartmentService {
     async extractDepartmentData(payload) {
         return {
             tenPhong: payload.tenPhong,
-            phanQuyen: payload.phanQuyen ?? "Thấp",
+            loaiPhongBan: payload.loaiPhongBan ?? "Thấp",
             deactive: payload.deactive ?? null,
         };
     }
@@ -19,8 +19,8 @@ class DepartmentService {
             await connection.beginTransaction();
 
             const [result] = await connection.execute(
-                "INSERT INTO PhongBan (tenPhong, phanQuyen, deactive) VALUES (?, ?, ?)",
-                [department.tenPhong, department.phanQuyen, department.deactive]
+                "INSERT INTO PhongBan (tenPhong, loaiPhongBan, deactive) VALUES (?, ?, ?)",
+                [department.tenPhong, department.loaiPhongBan, department.deactive]
             );
 
             const autoId = result.insertId;
@@ -47,9 +47,9 @@ class DepartmentService {
             sql += " AND tenPhong LIKE ?";
             params.push(`%${filter.tenPhong}%`);
         }
-        if (filter.phanQuyen) {
-            sql += " AND phanQuyen = ?";
-            params.push(filter.phanQuyen);
+        if (filter.loaiPhongBan) {
+            sql += " AND loaiPhongBan = ?";
+            params.push(filter.loaiPhongBan);
         }
         const [rows] = await this.mysql.execute(sql, params);
         return rows;

@@ -237,3 +237,15 @@ exports.getAssignNumber = async (req, res, next) => {
         next(new ApiError(500, "An error occurred while retrieving assignments count"));
     }
 }
+
+// Lấy phân quyền của tài khoản
+exports.getRole = async (req, res, next) => {
+    try {
+        const authService = new AuthService(MySQL.connection);
+        const permissions = await authService.getRole(req.params.id);
+        return res.send(permissions);
+    } catch (error) {
+        console.error("Get permissions error:", error);
+        next(new ApiError(500, "An error occurred while retrieving permissions"));
+    }
+}

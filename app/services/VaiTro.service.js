@@ -5,7 +5,7 @@ class RoleService {
 
     async extractRoleData(payload) {
         return {
-            tenChucVu: payload.tenChucVu,
+            tenVaiTro: payload.tenVaiTro,
             phanQuyen: payload.phanQuyen ?? 1,
             deactive: payload.deactive ?? null,
         };
@@ -17,8 +17,8 @@ class RoleService {
         try {
             await connection.beginTransaction();
             const [result] = await connection.execute(
-                "INSERT INTO VaiTro (tenChucVu, phanQuyen, deactive) VALUES (?, ?, ?)",
-                [role.tenChucVu, role.phanQuyen, role.deactive]
+                "INSERT INTO VaiTro (tenVaiTro, phanQuyen, deactive) VALUES (?, ?, ?)",
+                [role.tenVaiTro, role.phanQuyen, role.deactive]
             );
             const autoId = result.insertId;
             const newId = "VT" + autoId.toString().padStart(6, "0");
@@ -27,7 +27,7 @@ class RoleService {
                 [newId, autoId]
             );
             await connection.commit();
-            return { id: newId, tenChucVu: role.tenChucVu, phanQuyen: role.phanQuyen };
+            return { id: newId, tenVaiTro: role.tenVaiTro, phanQuyen: role.phanQuyen };
         } catch (error) {
             await connection.rollback();
             throw error;
@@ -39,9 +39,9 @@ class RoleService {
     async find(filter = {}) {
         let sql = "SELECT * FROM VaiTro WHERE deactive IS NULL";
         let params = [];
-        if (filter.tenChucVu) {
-            sql += " AND tenChucVu LIKE ?";
-            params.push(`%${filter.tenChucVu}%`);
+        if (filter.tenVaiTro) {
+            sql += " AND tenVaiTro LIKE ?";
+            params.push(`%${filter.tenVaiTro}%`);
         }
         if (filter.phanQuyen) {
             sql += " AND phanQuyen = ?";
