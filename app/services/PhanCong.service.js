@@ -299,7 +299,7 @@ class AssignmentService {
             if (!cgRows.length) throw new Error("Không tìm thấy chuyển giao đang chờ nhận.");
 
             const transfer = cgRows[0];
-            transfer.ngayNhanMoi = payload.ngayNhanMoi || new Date();
+            const ngayNhanMoi = payload.ngayNhanMoi || new Date();
 
             // Lấy phân công cũ
             const [assignRows] = await connection.execute(
@@ -310,47 +310,43 @@ class AssignmentService {
 
             const oldAssignment = assignRows[0];
 
-            // Tạo id mới cho PhanCong
-            const [lastPC] = await connection.execute(
-                "SELECT id FROM PhanCong WHERE id LIKE 'PC%%%%%%' ORDER BY id DESC LIMIT 1"
-            );
-            let newIdNumber = 1;
-            if (lastPC.length > 0) {
-                const num = parseInt(lastPC[0].id.slice(2), 10);
-                if (!isNaN(num)) newIdNumber = num + 1;
-            }
-            const newPCId = "PC" + newIdNumber.toString().padStart(6, "0");
-
-            // Tạo PhanCong mới
-            await connection.execute(
-                `INSERT INTO PhanCong (id, idCongViec, moTa, tienDoCaNhan, idNguoiNhan, ngayNhan, ngayHoanTat, trangThai)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            // Tạo phân công mới
+            const [insertResult] = await connection.execute(
+                `INSERT INTO PhanCong (idCongViec, moTa, tienDoCaNhan, idNguoiNhan, ngayNhan, ngayHoanTat, trangThai)
+                VALUES (?, ?, ?, ?, ?, ?, ?)`,
                 [
-                    newPCId,
                     oldAssignment.idCongViec,
                     oldAssignment.moTa,
                     oldAssignment.tienDoCaNhan,
                     transfer.idNguoiNhan,
-                    transfer.ngayNhanMoi,
+                    ngayNhanMoi,
                     null,
-                    "Chưa bắt đầu"
+                    oldAssignment.trangThai
                 ]
+            );
+            const newAutoId = insertResult.insertId;
+            const newAssignmentId = "PC" + newAutoId.toString().padStart(6, "0");
+
+            // Cập nhật id cho bản ghi vừa chèn
+            await connection.execute(
+                "UPDATE PhanCong SET id = ? WHERE autoId = ?",
+                [newAssignmentId, newAutoId]
             );
 
             // Cập nhật bản ghi chuyển giao
             await connection.execute(
-                "UPDATE LichSuChuyenGiao SET idSau = ?, trangThai = 'Đã nhận' WHERE id = ?",
-                [newPCId, idChuyenGiao]
+                "UPDATE LichSuChuyenGiao SET idSau = ?, trangThai = 'Đã nhận', ngayNhanMoi = ? WHERE id = ?",
+                [newAssignmentId, ngayNhanMoi, idChuyenGiao]
             );
 
-            // Cập nhật phân công cũ
+            // Đánh dấu phân công cũ là đã chuyển giao
             await connection.execute(
                 "UPDATE PhanCong SET trangThai = ?, ngayHoanTat = ? WHERE id = ?",
                 ["Đã chuyển giao", new Date(), transfer.idTruoc]
             );
 
             await connection.commit();
-            return { newAssignmentId: newPCId };
+            return { newAssignmentId };
         } catch (err) {
             await connection.rollback();
             throw err;

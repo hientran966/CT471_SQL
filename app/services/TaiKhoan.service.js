@@ -12,7 +12,7 @@ class AuthService {
             gioiTinh: payload.gioiTinh ?? "Nam",
             SDT: payload.SDT,
             diaChi: payload.diaChi,
-            vaiTro: payload.vaiTro ?? "Nhân Viên",
+            vaiTro: payload.vaiTro ?? "VT000001",
             idPhong: payload.idPhong ?? null,
             avatar: payload.avatar ?? "FI000001",
             deactive: payload.deactive ?? null,
