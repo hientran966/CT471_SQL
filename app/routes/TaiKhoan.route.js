@@ -31,5 +31,9 @@ router.route("/:id/password")
     .put(auth.changePassword);
 router.route("/:id/assign")
     .get(auth.getAssignNumber);
+router.route("/:id/role")
+    .get(auth.getRole);
+router.route("/:id/department")
+    .get(auth.getUserDepartment);
 
 module.exports = router;

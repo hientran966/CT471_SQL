@@ -10,6 +10,7 @@ router.get("/assignment/:id", notifications.findByAssignment);
 router.get("/comment/:id", notifications.findByComment);
 router.get("/version/:id", notifications.findByVersion);
 router.get("/account/:id", notifications.findByUser);
+router.get("/receive/:id", notifications.findByReceive);
 
 router.route("/")
     .get(notifications.findAll)

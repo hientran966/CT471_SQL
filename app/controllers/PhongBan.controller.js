@@ -130,3 +130,20 @@ exports.deleteAll = async (req, res, next) => {
         );
     }
 };
+
+// Lấy phân quyền
+exports.getRole = async (req, res, next) => {
+    try {
+        const departmentService = new DepartmentService(MySQL.connection);
+        const permissions = await departmentService.getRole(req.params.id);
+        return res.send(permissions);
+    } catch (error) {
+        console.error(error);
+        return next(
+            new ApiError(
+                500,
+                `Đã xảy ra lỗi khi lấy phân quyền phòng ban với id=${req.params.id}`
+            )
+        );
+    }
+};

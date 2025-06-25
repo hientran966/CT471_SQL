@@ -85,29 +85,40 @@ class AuthService {
         }
     }
 
-
     async find(filter = {}) {
-        let sql = "SELECT * FROM TaiKhoan WHERE deactive IS NULL";
-        let params = [];
+        let sql = `
+            SELECT tk.*, vt.phanQuyen
+            FROM TaiKhoan tk
+            LEFT JOIN VaiTro vt ON tk.vaiTro = vt.id
+            WHERE tk.deactive IS NULL
+        `;
+        const params = [];
+
         if (filter.email) {
-            sql += " AND email LIKE ?";
+            sql += " AND tk.email LIKE ?";
             params.push(`%${filter.email}%`);
         }
         if (filter.vaiTro) {
-            sql += " AND vaiTro = ?";
+            sql += " AND tk.vaiTro = ?";
             params.push(filter.vaiTro);
         }
         if (filter.tenNV) {
-            sql += " AND tenNV LIKE ?";
+            sql += " AND tk.tenNV LIKE ?";
             params.push(`%${filter.tenNV}%`);
         }
+
         const [rows] = await this.mysql.execute(sql, params);
         return rows;
     }
 
     async findById(id) {
         const [rows] = await this.mysql.execute(
-            "SELECT * FROM TaiKhoan WHERE id = ? AND deactive IS NULL",
+            `
+            SELECT tk.*, vt.tenVaiTro
+            FROM TaiKhoan tk
+            LEFT JOIN VaiTro vt ON tk.vaiTro = vt.id
+            WHERE tk.id = ? AND tk.deactive IS NULL
+            `,
             [id]
         );
         return rows[0] || null;
@@ -213,21 +224,20 @@ class AuthService {
         return rows;
     }
 
-    async getDepartment(id) {
-        const [userRows] = await this.mysql.execute(
-            "SELECT idPhong FROM TaiKhoan WHERE id = ? AND deactive IS NULL",
+    async getUserDepartment(id) {
+        const [rows] = await this.mysql.execute(
+            "SELECT pb.*,lp.phanQuyen FROM PhongBan pb JOIN TaiKhoan tk ON pb.id = tk.idPhong JOIN LoaiPhongBan lp ON pb.loaiPhongBan = lp.id WHERE tk.id = ? AND tk.deactive IS NULL",
             [id]
-        );
-        if (!userRows.length || !userRows[0].idPhong) {
-            return [];
-        }
+        )
 
-        const idPhong = userRows[0].idPhong;
+        return rows;
+    }
 
+    async getDepartment(id) {
         const [accounts] = await this.mysql.execute(
             `SELECT * FROM TaiKhoan
             WHERE idPhong = ? AND deactive IS NULL`,
-            [idPhong]
+            [id]
         );
 
         return accounts;
@@ -262,7 +272,12 @@ class AuthService {
 
     async getAssignNumber(id) {
         const [rows] = await this.mysql.execute(
-            "SELECT COUNT(*) AS count FROM TaiKhoan JOIN PhanCong ON TaiKhoan.id = PhanCong.idNguoiNhan WHERE TaiKhoan.id = ? AND TaiKhoan.deactive IS NULL AND PhanCong.trangThai = 'Đang thực hiện'",
+            `SELECT COUNT(DISTINCT PhanCong.idCongViec) AS count
+            FROM TaiKhoan
+            JOIN PhanCong ON TaiKhoan.id = PhanCong.idNguoiNhan
+            WHERE TaiKhoan.id = ? 
+            AND TaiKhoan.deactive IS NULL 
+            AND PhanCong.trangThai = 'Đang thực hiện'`,
             [id]
         );
         return rows[0].count;

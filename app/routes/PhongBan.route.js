@@ -13,4 +13,7 @@ router.route("/:id")
     .put(department.update)
     .delete(department.delete);
 
+router.route("/:id/role")
+    .get(department.getRole);
+
 module.exports = router;

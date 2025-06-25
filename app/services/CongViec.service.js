@@ -141,7 +141,7 @@ class TaskService {
 
   async findByAccountId(accountId) {
     const sql = `
-      SELECT cv.*, pc.moTa FROM CongViec cv
+      SELECT DISTINCT  cv.* FROM CongViec cv
       INNER JOIN PhanCong pc ON cv.id = pc.idCongViec
       WHERE pc.idNguoiNhan = ? AND cv.deactive IS NULL
     `;

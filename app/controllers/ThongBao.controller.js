@@ -196,3 +196,15 @@ exports.findByUser = async (req, res, next) => {
         return next(new ApiError(500, "Đã xảy ra lỗi khi lấy thông báo theo người dùng"));
     }
 };
+
+// Lấy thông báo theo người nhận
+exports.findByReceive = async (req, res, next) => {
+    try {
+        const notificationService = new NotificationService(MySQL.pool);
+        const documents = await notificationService.getNotificationByReceive(req.params.id);
+        return res.send(documents);
+    } catch (error) {
+        console.error(error);
+        return next(new ApiError(500, "Đã xảy ra lỗi khi lấy thông báo theo người nhận"));
+    }
+};

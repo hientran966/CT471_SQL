@@ -16,6 +16,7 @@ class NotificationService {
             idDuAn: payload.idDuAn ?? null,
             idPhanHoi: payload.idPhanHoi ?? null,
             idPhienBan: payload.idPhienBan ?? null,
+            idNguoiNhan: payload.idNguoiNhan ?? null,
         };
     }
 
@@ -52,12 +53,13 @@ class NotificationService {
                 notification.idDuAn ?? null,
                 notification.idPhanHoi ?? null,
                 notification.idPhienBan ?? null,
+                notification.idNguoiNhan ?? null
             ];
 
             await connection.execute(
                 `INSERT INTO ThongBao 
-                (id, tieuDe, noiDung, idNguoiDang, ngayDang, deactive, idPhanCong, idCongViec, idNhomCV, idDuAn, idPhanHoi, idPhienBan) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+                (id, tieuDe, noiDung, idNguoiDang, ngayDang, deactive, idPhanCong, idCongViec, idNhomCV, idDuAn, idPhanHoi, idPhienBan, idNguoiNhan) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
                 values
             );
 
@@ -214,6 +216,13 @@ class NotificationService {
         return this.mysql.execute(
             "SELECT * FROM ThongBao WHERE idNguoiDang = ? AND deactive IS NULL ORDER BY ngayDang DESC",
             [userId]
+        ).then(([rows]) => rows);
+    }
+
+    getNotificationByReceive(id) {
+        return this.mysql.execute(
+            "SELECT * FROM ThongBao WHERE idNguoiNhan = ? AND deactive IS NULL ORDER BY ngayDang DESC",
+            [id]
         ).then(([rows]) => rows);
     }
 }

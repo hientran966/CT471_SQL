@@ -41,23 +41,36 @@ class DepartmentService {
     }
 
     async find(filter = {}) {
-        let sql = "SELECT * FROM PhongBan WHERE deactive IS NULL";
-        let params = [];
+        let sql = `
+            SELECT pb.*, lp.phanQuyen
+            FROM PhongBan pb
+            JOIN LoaiPhongBan lp ON pb.loaiPhongBan = lp.id
+            WHERE pb.deactive IS NULL
+        `;
+        const params = [];
+
         if (filter.tenPhong) {
-            sql += " AND tenPhong LIKE ?";
+            sql += " AND pb.tenPhong LIKE ?";
             params.push(`%${filter.tenPhong}%`);
         }
+
         if (filter.loaiPhongBan) {
-            sql += " AND loaiPhongBan = ?";
+            sql += " AND pb.loaiPhongBan = ?";
             params.push(filter.loaiPhongBan);
         }
+
         const [rows] = await this.mysql.execute(sql, params);
         return rows;
     }
 
     async findById(id) {
         const [rows] = await this.mysql.execute(
-            "SELECT * FROM PhongBan WHERE id = ? AND deactive IS NULL",
+            `
+            SELECT pb.*, lp.phanQuyen
+            FROM PhongBan pb
+            JOIN LoaiPhongBan lp ON pb.loaiPhongBan = lp.id
+            WHERE pb.id = ? AND pb.deactive IS NULL
+            `,
             [id]
         );
         return rows[0] || null;
@@ -103,6 +116,14 @@ class DepartmentService {
             [deletedAt]
         );
         return true;
+    }
+
+    async getRole(id) {
+        const [rows] = await this.mysql.execute(
+            "SELECT lp.phanQuyen FROM PhongBan pb JOIN LoaiPhongBan lp ON pb.loaiPhongBan = lp.id WHERE pb.id = ? AND pb.deactive IS NULL",
+            [id]
+        );
+        return rows[0] || null;
     }
 }
 
