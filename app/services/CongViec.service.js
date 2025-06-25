@@ -11,7 +11,6 @@ class TaskService {
       ngayKT: payload.ngayKT ?? null,
       deactive: payload.deactive ?? null,
       idNguoiTao: payload.idNguoiTao ?? null,
-      idNhomCV: payload.idNhomCV ?? null,
       idDuAn: payload.idDuAn ?? null,
     };
   }
@@ -24,8 +23,8 @@ class TaskService {
 
       // Bước 1: Chèn task chưa có id
       const [result] = await connection.execute(
-        `INSERT INTO CongViec (tenCV, moTa, ngayBD, ngayKT, deactive, idNguoiTao, idNhomCV, idDuAn)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO CongViec (tenCV, moTa, ngayBD, ngayKT, deactive, idNguoiTao, idDuAn)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           task.tenCV,
           task.moTa,
@@ -33,7 +32,6 @@ class TaskService {
           task.ngayKT,
           task.deactive,
           task.idNguoiTao,
-          task.idNhomCV,
           task.idDuAn,
         ]
       );
@@ -77,10 +75,6 @@ class TaskService {
     if (filter.ngayKT) {
       sql += " AND ngayKT <= ?";
       params.push(filter.ngayKT);
-    }
-    if (filter.idNhomCV) {
-      sql += " AND idNhomCV = ?";
-      params.push(filter.idNhomCV);
     }
     if (filter.idNguoiTao) {
       sql += " AND idNguoiTao = ?";

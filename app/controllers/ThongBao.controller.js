@@ -24,13 +24,13 @@ exports.findAll = async (req, res, next) => {
         const notificationService = new NotificationService(MySQL.pool);
         const {
             noiDung, tieuDe, ngayDang, idNguoiDang,
-            idPhanCong, idCongViec, idNhomCV, idDuAn, idPhanHoi,
+            idPhanCong, idCongViec, idDuAn, idPhanHoi,
             page = 1, pageSize = 20
         } = req.query;
 
         const filter = {
             noiDung, tieuDe, ngayDang, idNguoiDang,
-            idPhanCong, idCongViec, idNhomCV, idDuAn, idPhanHoi
+            idPhanCong, idCongViec, idDuAn, idPhanHoi
         };
 
         Object.keys(filter).forEach((key) => {

@@ -12,7 +12,6 @@ class NotificationService {
             deactive: payload.deactive ?? null,
             idPhanCong: payload.idPhanCong ?? null,
             idCongViec: payload.idCongViec ?? null,
-            idNhomCV: payload.idNhomCV ?? null,
             idDuAn: payload.idDuAn ?? null,
             idPhanHoi: payload.idPhanHoi ?? null,
             idPhienBan: payload.idPhienBan ?? null,
@@ -49,7 +48,6 @@ class NotificationService {
                 notification.deactive ?? null,
                 notification.idPhanCong ?? null,
                 notification.idCongViec ?? null,
-                notification.idNhomCV ?? null,
                 notification.idDuAn ?? null,
                 notification.idPhanHoi ?? null,
                 notification.idPhienBan ?? null,
@@ -58,8 +56,8 @@ class NotificationService {
 
             await connection.execute(
                 `INSERT INTO ThongBao 
-                (id, tieuDe, noiDung, idNguoiDang, ngayDang, deactive, idPhanCong, idCongViec, idNhomCV, idDuAn, idPhanHoi, idPhienBan, idNguoiNhan) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+                (id, tieuDe, noiDung, idNguoiDang, ngayDang, deactive, idPhanCong, idCongViec, idDuAn, idPhanHoi, idPhienBan, idNguoiNhan) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
                 values
             );
 
@@ -181,13 +179,6 @@ class NotificationService {
         return this.mysql.execute(
             "SELECT * FROM ThongBao WHERE idDuAn = ? AND deactive IS NULL",
             [projectId]
-        ).then(([rows]) => rows);
-    }
-
-    getNotificationByGroupId(groupId) {
-        return this.mysql.execute(
-            "SELECT * FROM ThongBao WHERE idNhomCV = ? AND deactive IS NULL",
-            [groupId]
         ).then(([rows]) => rows);
     }
 
