@@ -12,6 +12,7 @@ class FileService {
             idNguoiTao: payload.idNguoiTao ?? null,
             idCongViec: payload.idCongViec ?? null,
             idPhanCong: payload.idPhanCong ?? null,
+            idDuAn: payload.idDuAn ?? null,
             deactive: payload.deactive ?? null,
         };
     }
@@ -62,8 +63,8 @@ class FileService {
 
             // B1: Tạo bản ghi File (chưa có id)
             const [fileResult] = await connection.execute(
-                "INSERT INTO File (tenFile, idNguoiTao, idCongViec, idPhanCong) VALUES (?, ?, ?, ?)",
-                [file.tenFile, file.idNguoiTao, file.idCongViec, file.idPhanCong]
+                "INSERT INTO File (tenFile, idNguoiTao, idCongViec, idPhanCong, idDuAn) VALUES (?, ?, ?, ?, ?)",
+                [file.tenFile, file.idNguoiTao, file.idCongViec, file.idPhanCong, file.idDuAn]
             );
             const fileAutoId = fileResult.insertId;
             const fileId = "FI" + fileAutoId.toString().padStart(6, "0");

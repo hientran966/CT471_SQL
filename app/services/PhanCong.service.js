@@ -107,7 +107,7 @@ class AssignmentService {
 
     async findByTask(taskId) {
         const [rows] = await this.mysql.execute(
-            "SELECT * FROM PhanCong WHERE idCongViec = ? AND deactive IS NULL AND TrangThai = 'Đang thực hiện'",
+            "SELECT * FROM PhanCong WHERE idCongViec = ? AND deactive IS NULL",
             [taskId]
         );
         return rows || null;
