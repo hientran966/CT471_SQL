@@ -228,6 +228,14 @@ class AssignmentService {
                 params.push(reportData.trangThai);
             }
             if (fields.length) {
+                if (
+                    reportData.tienDoCaNhan !== null &&
+                    Number(reportData.tienDoCaNhan) >= 100
+                ) {
+                    fields.push("ngayHoanTat = ?");
+                    params.push(new Date());
+                }
+
                 params.push(idPhanCong);
                 await connection.execute(
                     `UPDATE PhanCong SET ${fields.join(", ")} WHERE id = ?`,
