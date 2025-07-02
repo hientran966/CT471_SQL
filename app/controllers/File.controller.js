@@ -164,3 +164,25 @@ exports.approve = async (req, res, next) => {
         return next(new ApiError(500, "Đã xảy ra lỗi khi duyệt file"));
     }
 };
+
+// Cập nhật avatar người dùng
+exports.uploadAvatar = async (req, res, next) => {
+    const userId = req.params.id;
+    const { tenFile, fileDataBase64 } = req.body;
+
+    if (!tenFile || !fileDataBase64) {
+        return next(new ApiError(400, "Thiếu dữ liệu file hoặc nội dung file"));
+    }
+
+    try {
+        const fileService = new FileService(MySQL.pool);
+        const result = await fileService.updateAvatar(userId, req.body);
+        return res.status(200).json({
+            message: "Cập nhật ảnh đại diện thành công",
+            result,
+        });
+    } catch (error) {
+        console.error(error);
+        return next(new ApiError(500, "Đã xảy ra lỗi khi cập nhật avatar"));
+    }
+};

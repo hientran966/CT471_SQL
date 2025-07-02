@@ -23,4 +23,6 @@ router.route("/:id/version/:versionId")
 router.route("/:id/version/:versionId/approve")
     .put(file.approve);
 
+router.post("/avatar/:id", file.uploadAvatar);
+
 module.exports = router;

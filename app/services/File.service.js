@@ -278,6 +278,67 @@ class FileService {
         );
         return { ...version, trangThai: 'Đã duyệt' };
     }
+
+    async updateAvatar(idNguoiDung, payload) {
+        const connection = await this.mysql.getConnection();
+        try {
+            await connection.beginTransaction();
+
+            // Tạo bản ghi file
+            const file = await this.extractFileData(payload);
+            const version = await this.extractVersionData(payload);
+
+            if (!payload.tenFile || typeof payload.tenFile !== 'string') {
+                throw new Error("Tên file không hợp lệ.");
+            }
+
+            let duongDan = null;
+            if (payload.fileDataBase64 && payload.tenFile) {
+                duongDan = await this.saveFileFromPayload(payload);
+            }
+            version.duongDan = duongDan;
+
+            const [fileResult] = await connection.execute(
+                "INSERT INTO File (tenFile, idNguoiTao) VALUES (?, ?)",
+                [file.tenFile, idNguoiDung]
+            );
+            const fileAutoId = fileResult.insertId;
+            const fileId = "FI" + fileAutoId.toString().padStart(6, "0");
+
+            await connection.execute(
+                "UPDATE File SET id = ? WHERE autoId = ?",
+                [fileId, fileAutoId]
+            );
+
+            // Thêm phiên bản
+            version.soPB = 1;
+            const [verResult] = await connection.execute(
+                "INSERT INTO PhienBan (soPB, duongDan, ngayUpload, trangThai, idFile) VALUES (?, ?, ?, ?, ?)",
+                [version.soPB, version.duongDan, version.ngayUpload, version.trangThai, fileId]
+            );
+            const verAutoId = verResult.insertId;
+            const versionId = "PB" + verAutoId.toString().padStart(6, "0");
+
+            await connection.execute(
+                "UPDATE PhienBan SET id = ? WHERE autoId = ?",
+                [versionId, verAutoId]
+            );
+
+            // Cập nhật avatar cho tài khoản
+            await connection.execute(
+                "UPDATE TaiKhoan SET avatar = ? WHERE id = ?",
+                [fileId, idNguoiDung]
+            );
+
+            await connection.commit();
+            return { fileId, versionId };
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
+    }
 }
 
 module.exports = FileService;
