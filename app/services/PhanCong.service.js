@@ -24,6 +24,7 @@ class AssignmentService {
             idCongViec: payload.idCongViec,
             ngayNhanMoi: payload.ngayNhanMoi,
             trangThai: payload.trangThai ?? "Chờ nhận",
+            isTransfer: payload.isTransfer ?? 1,
         };
     }
 
@@ -266,14 +267,15 @@ class AssignmentService {
 
             // B1: Thêm bản ghi mới chưa có id
             const [result] = await connection.execute(
-                `INSERT INTO LichSuChuyenGiao (idTruoc, idSau, moTa, idNguoiNhan, idNguoiGui, trangThai, idCongViec)
-                VALUES (?, NULL, ?, ?, ?, 'Chưa nhận', ?)`,
+                `INSERT INTO LichSuChuyenGiao (idTruoc, idSau, moTa, idNguoiNhan, idNguoiGui, trangThai, idCongViec, isTransfer)
+                VALUES (?, NULL, ?, ?, ?, 'Chưa nhận', ?, ?)`,
                 [
                     id,
                     payload.moTa ?? null,
                     payload.idNguoiNhan ?? null,
                     payload.idNguoiGui ?? null,
                     payload.idCongViec,
+                    payload.isTransfer ?? 1,
                 ]
             );
 
