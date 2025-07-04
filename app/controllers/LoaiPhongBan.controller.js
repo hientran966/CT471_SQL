@@ -76,7 +76,7 @@ exports.update = async (req, res, next) => {
 // Xóa loại phòng ban
 exports.delete = async (req, res, next) => {
     try {
-        const deptRoleService = new DeptRoleService(MySQL.connection);
+        const deptRoleService = new DeptRoleService(MySQL.pool);
         const deleted = await deptRoleService.delete(req.params.id);
         if (!deleted) {
             return next(new ApiError(404, "Loại phòng ban không tồn tại"));

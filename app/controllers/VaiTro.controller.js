@@ -73,7 +73,7 @@ exports.update = async (req, res, next) => {
 // Xóa vai trò
 exports.delete = async (req, res, next) => {
     try {
-        const roleService = new RoleService(MySQL.connection);
+        const roleService = new RoleService(MySQL.pool);
         await roleService.delete(req.params.id);
         return res.send({ message: "Xóa vai trò thành công" });
     } catch (error) {
