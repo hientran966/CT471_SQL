@@ -210,7 +210,7 @@ exports.startTransfer = async (req, res, next) => {
     }
     try {
         const assignmentService = new AssignmentService(MySQL.pool);
-        console.log(req.body);
+        
         const result = await assignmentService.initiateTransfer(req.params.id, req.body);
         if (!result) {
             return next(new ApiError(404, "Không tìm thấy phân công để bắt đầu chuyển giao"));
