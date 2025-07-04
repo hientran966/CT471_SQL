@@ -21,6 +21,7 @@ class AssignmentService {
             moTa: payload.moTa,
             idNguoiNhan: payload.idNguoiNhan,
             idNguoiGui: payload.idNguoiGui,
+            idCongViec: payload.idCongViec,
             ngayNhanMoi: payload.ngayNhanMoi,
             trangThai: payload.trangThai ?? "Chờ nhận",
         };
@@ -265,13 +266,14 @@ class AssignmentService {
 
             // B1: Thêm bản ghi mới chưa có id
             const [result] = await connection.execute(
-                `INSERT INTO LichSuChuyenGiao (idTruoc, idSau, moTa, idNguoiNhan, idNguoiGui, trangThai)
-                VALUES (?, NULL, ?, ?, ?, 'Chưa nhận')`,
+                `INSERT INTO LichSuChuyenGiao (idTruoc, idSau, moTa, idNguoiNhan, idNguoiGui, trangThai, idCongViec)
+                VALUES (?, NULL, ?, ?, ?, 'Chưa nhận', ?)`,
                 [
                     id,
                     payload.moTa ?? null,
                     payload.idNguoiNhan ?? null,
                     payload.idNguoiGui ?? null,
+                    payload.idCongViec,
                 ]
             );
 
@@ -343,8 +345,8 @@ class AssignmentService {
 
             // Cập nhật bản ghi chuyển giao
             await connection.execute(
-                "UPDATE LichSuChuyenGiao SET idSau = ?, trangThai = 'Đã nhận', ngayNhanMoi = ? WHERE id = ?",
-                [newAssignmentId, ngayNhanMoi, idChuyenGiao]
+                "UPDATE LichSuChuyenGiao SET idSau = ?, trangThai = 'Đã nhận' WHERE id = ?",
+                [newAssignmentId, idChuyenGiao]
             );
 
             // Đánh dấu phân công cũ là đã chuyển giao
@@ -384,11 +386,16 @@ class AssignmentService {
         }
     }
 
-    async getTransferByUser(userId) {
-        const [rows] = await this.mysql.execute(
-            "SELECT * FROM LichSuChuyenGiao WHERE idNguoiNhan = ? OR idNguoiGui = ?",
-            [userId , userId]
-        );
+    async getTransferByUser(userId, idCongViec = null) {
+        let sql = "SELECT * FROM LichSuChuyenGiao WHERE (idNguoiNhan = ? OR idNguoiGui = ?)";
+        const params = [userId, userId];
+
+        if (idCongViec) {
+            sql += " AND idCongViec = ?";
+            params.push(idCongViec);
+        }
+
+        const [rows] = await this.mysql.execute(sql, params);
         return rows || [];
     }
 

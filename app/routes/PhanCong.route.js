@@ -16,7 +16,7 @@ router.route("/:id")
 router.route("/:id/pending")
     .get(assignment.getPendingTransfer);
 
-router.route("/:id/userTransfer")
+router.route("/user/:id/transfer")
     .get(assignment.getTransferByUser);
 
 router.route("/:id/transfer")
